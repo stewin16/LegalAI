@@ -118,5 +118,83 @@
         "**Opinion vs Fact**: Fair comment on public interest matters is generally protected."
       ]
     }
+  },
+  {
+    "keywords": ["cheating", "fraud", "scam", "dhoka", "420"],
+    "ipc": {
+      "section": "Section 420",
+      "text": "Cheating and dishonestly inducing delivery of property: Whoever cheats and thereby dishonestly induces the person deceived to deliver any property..."
+    },
+    "bns": {
+      "section": "Section 318",
+      "text": "Cheating: Defined in Section 318(4) of BNS, focusing on deception and inducing delivery of property."
+    },
+    "hindi_response": "धोखाधड़ी: जो कोई धोखा देता है और बेईमानी से किसी व्यक्ति को कोई संपत्ति देने के लिए प्रेरित करता है... (धारा 318 बीएनएस)",
+    "case_laws": [
+      { "title": "Hridaya Ranjan Pd. Verma vs State of Bihar (2000)", "summary": "Detailed the distinction between mere breach of contract and criminal cheating (intent must exist at start)." }
+    ],
+    "arguments": {
+      "for": [
+        "The accused made a false representation knowing it to be false.",
+        "The victim was induced to deliver property based on this representation.",
+        "There was dishonest intention from the very beginning."
+      ],
+      "against": [
+        "This is a civil dispute (breach of contract), not criminal cheating.",
+        "There was no fraudulent intent at the time of the agreement.",
+        "The failure to perform a promise does not amount to cheating."
+      ]
+    },
+    "neutral_analysis": {
+      "factors": [
+        "**Deception**: Was there an active act of deceiving?",
+        "**Inducement**: Did the deception cause the victim to act?",
+        "**Damage**: Did the victim suffer harm (financial/mental)?"
+      ],
+      "interpretations": [
+        "**Civil vs Criminal**: Crucial to prove 'mens rea' (guilty mind) at the time of transaction for Section 318 BNS.",
+        "**Broken Promise**: Mere failure to keep a promise is not cheating unless intent to deceive is proven.",
+        "**Corporate Fraud**: Directors can be held liable if active participation is shown."
+      ]
+    }
+  },
+  {
+    "keywords": ["assault", "force", "women", "modesty", "molestation"],
+    "ipc": {
+      "section": "Section 354",
+      "text": "Assault or criminal force to woman with intent to outrage her modesty."
+    },
+    "bns": {
+      "section": "Section 74",
+      "text": "Assault or criminal force to woman with intent to outrage her modesty: Retains the core offense but with updated language."
+    },
+    "hindi_response": "महिला की लज्जा भंग करने के इरादे से हमला: जो कोई भी किसी महिला पर हमला करता है या आपराधिक बल का प्रयोग करता है... (धारा 74 बीएनएस)",
+    "case_laws": [
+      { "title": "Rupan Deol Bajaj vs KPS Gill (1995)", "summary": "Defined what constitutes 'outraging modesty' - acts shocking strict moral etiquette." }
+    ],
+    "arguments": {
+      "for": [
+        "The accused used criminal force or assault.",
+        "The intention or knowledge was to outrage the modesty of the victim.",
+        "The victim serves as a credible witness."
+      ],
+      "against": [
+        "The interaction was accidental without criminal intent.",
+        "The allegations are falsely motivated by prior enmity.",
+        "There is no independent corroboration of the incident."
+      ]
+    },
+    "neutral_analysis": {
+      "factors": [
+        "**Intent**: Was the act done with the specific intent to outrage modesty?",
+        "**Nature of Act**: Was the physical contact or gesture sufficient to constitute the offense?",
+        "**Gender Neutrality**: BNS Section 74 remains gender-specific protecting women."
+      ],
+      "interpretations": [
+        "**Modesty Defined**: Not rigidly defined, but construed based on societal standards (Rupan Deol Case).",
+        "**Knowledge**: Even if intent isn't proven, 'knowledge' that the act would outrage modesty is sufficient.",
+        "**FIR Delay**: Courts are sensitive to delays in such sensitive cases, but valid reasons must comprise the delay."
+      ]
+    }
   }
 ]

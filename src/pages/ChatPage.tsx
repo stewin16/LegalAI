@@ -6,7 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Loader2, Scale, Zap, Shield, BookOpen, Mic, MicOff, Download, Balance, FileText } from "lucide-react";
+import { Loader2, Scale, Zap, Shield, BookOpen, Mic, MicOff, Download, FileText } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import jsPDF from "jspdf";
@@ -140,7 +140,10 @@ const ChatPage = () => {
             body: citationData,
             theme: 'grid'
         });
-        yPos = (doc as any).lastAutoTable.finalY + 10;
+        interface JsPDFWithAutoTable extends jsPDF {
+            lastAutoTable: { finalY: number };
+        }
+        yPos = (doc as JsPDFWithAutoTable).lastAutoTable.finalY + 10;
     }
 
     // Disclaimer
@@ -266,7 +269,7 @@ const ChatPage = () => {
                                     {msg.neutral_analysis && (
                                         <div className="mt-4 bg-blue-50/50 dark:bg-blue-950/20 p-4 rounded-xl border border-blue-100 dark:border-blue-900">
                                             <div className="flex items-center gap-2 mb-3 border-b border-blue-200 dark:border-blue-800 pb-2">
-                                                <Balance className="h-4 w-4 text-blue-600" />
+                                                <Scale className="h-4 w-4 text-blue-600" />
                                                 <h4 className="font-semibold text-blue-700 dark:text-blue-400 text-sm">Neutral Legal Analysis</h4>
                                             </div>
                                             

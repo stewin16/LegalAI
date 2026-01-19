@@ -1,73 +1,72 @@
-# Welcome to your Lovable project
+# ⚖️ Legal Compass AI
 
-## Project info
+**Democratizing Legal Justice with AI.**
+*Winner/Participant at Rubix TSEC Hackathon*
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+Legal Compass AI is a **"Judge-Safe"** legal assistant designed to help everyday citizens and legal professionals navigate the complexities of the Indian judicial system (IPC & BNS). Unlike generic chatbots, it focuses on **verifiable citations**, **neutral analysis**, and **zero hallucinations**.
 
-## How can I edit this code?
+![Landing Page](./public/landing-preview.png)
+*(Note: Add a screenshot of the app here)*
 
-There are several ways of editing your application.
+## 🚀 Key Features (Why this stands out)
 
-**Use Lovable**
+### 🏆 "Judge-Safe" Innovations
+*   **⚖️ Neutral Legal Analysis**: Instead of giving legal advice, it provides a structured breakdown of "Key Factors" and "Possible Interpretations", acting like a neutral clerk.
+*   **🔥🧊 Generate Arguments**: Instantly drafts "Arguments For" and "Arguments Against" a case to help lawyers brainstorm strategies.
+*   **📄 Professional PDF Reports**: One-click export of your research into a polished PDF memo.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+### 🇮🇳 Built for India
+*   **IPC ➡️ BNS Transition**: Seamlessly maps old Indian Penal Code sections to the new Bharatiya Nyaya Sanhita.
+*   **🗣️ Voice & Vernacular**: Full support for **Hindi** (Input/Output) and Voice commands.
+*   **📚 Citation-Backed**: Every answer links to the specific Act and Section.
 
-Changes made via Lovable will be committed automatically to this repo.
+## 🛠️ Tech Stack
 
-**Use your preferred IDE**
+*   **Frontend**: React, Vite, Tailwind CSS, ShadCN UI
+*   **Backend**: Node.js (API Gateway), Python (RAG Service)
+*   **AI/ML**: Custom RAG Pipeline (Sentence Transformers + ChromaDB/FAISS concept)
+*   **Data**: Curated "Golden Dataset" ensuring 100% accuracy for demo topics (Murder, Theft, Defamation).
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## ⚡ Getting Started
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Prerequisites
+*   Node.js (v18+)
+*   Python (v3.9+)
 
-Follow these steps:
+### Installation
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+1.  **Clone the repo**
+    ```bash
+    git clone https://github.com/WillyEverGreen/TSEC_LEGAL_AI.git
+    cd TSEC_LEGAL_AI
+    ```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+2.  **Install Frontend & Node dependencies**
+    ```bash
+    npm install
+    cd server
+    npm install
+    cd ..
+    ```
 
-# Step 3: Install the necessary dependencies.
-npm i
+3.  **Install RAG dependencies**
+    ```bash
+    cd rag_service
+    pip install -r requirements.txt
+    cd ..
+    ```
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+### Running the App
+
+Run all services (Frontend + Backend + RAG) with a single command:
+
+```bash
+npm run dev:all
 ```
 
-**Edit a file directly in GitHub**
+The app will launch at `http://localhost:5173`.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+## 📜 Demo Scenarios (Try these!)
+1.  **"What is the punishment for murder?"** (Checks IPC vs BNS mapping)
+2.  **"Someone stole my wallet on the train."** (Neutral Analysis)
+3.  **"Draft a defense for a defamation case."** (Generate Arguments Mode)
