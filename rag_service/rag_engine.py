@@ -6,56 +6,105 @@ from typing import List, Dict, Any
 class RAGEngine:
     def __init__(self):
         self.api_key = os.getenv("OPENAI_API_KEY")
-        # Load Golden Dataset
+        # Load Datasets
+        self.dataset = []
+        self.statutes = []
+        
+        # 1. Golden Dataset (Case Laws)
         try:
             with open(os.path.join(os.path.dirname(__file__), "data", "golden_dataset.json"), "r", encoding="utf-8") as f:
                 self.dataset = json.load(f)
-            print("[RAGEngine] Golden Dataset loaded successfully.")
+            print("[RAGEngine] Golden Dataset (Case Laws) loaded successfully.")
         except Exception as e:
-            print(f"[RAGEngine] Error loading dataset: {e}")
-            self.dataset = []
+            print(f"[RAGEngine] Error loading Golden Dataset: {e}")
+
+        # 2. Statute Map (IPC <-> BNS)
+        try:
+            with open(os.path.join(os.path.dirname(__file__), "data", "ipc_bns_mapping.json"), "r", encoding="utf-8") as f:
+                self.statutes = json.load(f)
+            print(f"[RAGEngine] Statute Map loaded successfully ({len(self.statutes)} sections).")
+        except Exception as e:
+            print(f"[RAGEngine] Error loading Statute Map: {e}")
 
     async def query(self, query: str, language: str = "en", arguments_mode: bool = False, analysis_mode: bool = False) -> Dict[str, Any]:
         """
-        Handles the full RAG pipeline using the Golden Dataset for MVP.
+        Handles the full RAG pipeline using the Hybrid Dataset (Statutes + Case Laws).
         """
-        print(f"[RAGEngine] Processing query: {query} (Lang: {language}, Args: {arguments_mode}, Analysis: {analysis_mode})")
+        print(f"[RAGEngine] Processing query: {query} (Lang: {language})")
         
-        # Simple Keyword Search for MVP
         query_lower = query.lower()
         match = None
-        for item in self.dataset:
-            if any(k in query_lower for k in item["keywords"]):
+        
+        # 1. Search in Statutes (Primary Source for "Sections")
+        for item in self.statutes:
+            # Check BNS number, IPC number, or Topic/Description match
+            if (item.get("bns") and item["bns"] in query_lower) or \
+               (item.get("ipc") and item["ipc"] in query_lower) or \
+               (item.get("topic") and item["topic"].lower() in query_lower) or \
+               (item.get("description") and item["description"].lower() in query_lower):
                 match = item
                 break
         
+        # 2. If no statute match, check Golden Dataset (Case Laws)
+        case_law_match = None
+        if not match:
+            for item in self.dataset:
+                # Assuming golden dataset has keywords
+                if "keywords" in item and any(k in query_lower for k in item["keywords"]):
+                    case_law_match = item
+                    break
+        
         if match:
-            response = {
-                "citations": [
-                    {"source": "Bhartiya Nyaya Sanhita, 2023", "section": match["bns"]["section"], "text": match["bns"]["text"]},
-                    {"source": "Indian Penal Code, 1860", "section": match["ipc"]["section"], "text": match["ipc"]["text"]}
-                ],
-                "related_judgments": match.get("case_laws", []),
-                "arguments": match.get("arguments") if arguments_mode else None,
-                "neutral_analysis": match.get("neutral_analysis") if analysis_mode else None,
-                "disclaimer": "Informational purposes only. Not legal advice. Final interpretation rests with the judiciary."
-            }
-
-            if language == "hi":
-                response["answer"] = match["hindi_response"]
-                response["disclaimer"] = "जानकारी केवल सूचना के लिए है। कानूनी सलाह नहीं। अंतिम व्याख्या न्यायपालिका के पास है।"
-                # Citations stay english largely for legal accuracy provided in source text
-                response["citations"] = [
-                     {"source": "Bhartiya Nyaya Sanhita, 2023", "section": match["bns"]["section"], "text": match["bns"]["text"]}
-                ]
+            # Construct response from Statute Match
+            bns_text = match.get("text_bns", "Text not available.")
+            ipc_text = match.get("text_ipc", "Text not available.")
+            
+            answer_text = f"**BNS Section {match['bns']}** covers **{match['topic']}**.\n\n"
+            answer_text += f"**Legal Text (BNS):**\n_{bns_text}_\n\n"
+            
+            if match.get("ipc"):
+                 answer_text += f"**Corresponding Old Law (IPC {match['ipc']}):**\n_{ipc_text}_"
             else:
-                 response["answer"] = f"Based on your query regarding '{query}', here is the relevant law:\n\n**{match['bns']['section']} (BNS)**: {match['bns']['text']}\n\n*Previously covered under {match['ipc']['section']} (IPC)*."
+                 answer_text += f"*This is a new provision in BNS with no direct IPC equivalent.*"
+
+            response = {
+                "answer": answer_text,
+                "citations": [
+                    {"source": "Bhartiya Nyaya Sanhita, 2023", "section": f"Section {match['bns']}", "text": bns_text[:200] + "..."}
+                ],
+                "related_judgments": [], # Could look up cases related to this topic later
+                "arguments": None,
+                "neutral_analysis": None,
+                "disclaimer": "Informational purposes only. Not legal advice."
+            }
+            
+            if match.get("ipc"):
+                 response["citations"].append({"source": "Indian Penal Code, 1860", "section": f"Section {match['ipc']}", "text": ipc_text[:200] + "..."})
 
             return response
 
-        # Fallback if no keyword match
+        elif case_law_match:
+            # Legacy/Case Law Match (using Golden Dataset logic)
+            response = {
+                "citations": [
+                    {"source": "Bhartiya Nyaya Sanhita, 2023", "section": case_law_match.get("bns", {}).get("section", "N/A"), "text": case_law_match.get("bns", {}).get("text", "")},
+                ],
+                "related_judgments": case_law_match.get("case_laws", []),
+                "arguments": case_law_match.get("arguments") if arguments_mode else None,
+                "neutral_analysis": case_law_match.get("neutral_analysis") if analysis_mode else None,
+                "disclaimer": "Informational purposes only. Not legal advice."
+            }
+             
+            if language == "hi":
+                response["answer"] = case_law_match.get("hindi_response", "Translation not available.")
+            else:
+                response["answer"] = f"Based on your query, here is the relevant case law info..."
+
+            return response
+
+        # Fallback
         return {
-            "answer": "I could not find a specific legal section matching your query in the current database. Please try asking about 'murder', 'theft', or 'defamation'.",
+            "answer": "I could not find a specific legal section or case law matching your query. Try asking about 'Murder', 'Theft', or specific sections like 'BNS 103'.",
             "citations": [],
             "related_judgments": [],
             "disclaimer": "Informational purposes only. Not legal advice."
