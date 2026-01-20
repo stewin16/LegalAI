@@ -1,9 +1,9 @@
-# ⚖️ Legal Compass AI
+# ⚖️ LegalAi
 
 **Democratizing Legal Justice with AI.**
 *Winner/Participant at Rubix TSEC Hackathon*
 
-Legal Compass AI is a **"Judge-Safe"** legal assistant designed to help everyday citizens and legal professionals navigate the complexities of the Indian judicial system (IPC & BNS). Unlike generic chatbots, it focuses on **verifiable citations**, **neutral analysis**, and **zero hallucinations**.
+LegalAi is a **"Judge-Safe"** legal assistant designed to help everyday citizens and legal professionals navigate the complexities of the Indian judicial system (IPC & BNS). Unlike generic chatbots, it focuses on **verifiable citations**, **neutral analysis**, and **zero hallucinations**.
 
 ![Landing Page](./public/landing-preview.png)
 *(Note: Add a screenshot of the app here)*

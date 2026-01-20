@@ -63,7 +63,10 @@ class TextProcessor:
         Returns:
             Tuple of (extracted_text, extraction_method)
         """
-        print(f"[TextProcessor] Processing PDF: {filename} ({len(file_content)} bytes)")
+        try:
+            print(f"[TextProcessor] Processing PDF: {filename.encode('utf-8', 'replace').decode('utf-8')} ({len(file_content)} bytes)")
+        except Exception:
+            print(f"[TextProcessor] Processing PDF: (filename encoding error) ({len(file_content)} bytes)")
         
         # Try PyMuPDF first (fast, for digital PDFs)
         try:
@@ -82,7 +85,7 @@ class TextProcessor:
                 
                 # Check if we got meaningful text (at least 100 chars)
                 if len(full_text.strip()) > 100:
-                    print(f"[TextProcessor] ✓ Native extraction successful ({len(full_text)} chars)")
+                    print(f"[TextProcessor] Native extraction successful ({len(full_text)} chars)")
                     return full_text, "pymupdf"
                 else:
                     print(f"[TextProcessor] Native extraction yielded insufficient text. Falling back to OCR...")
@@ -105,12 +108,33 @@ class TextProcessor:
                         full_text += extracted + "\n"
                 
                 if len(full_text.strip()) > 100:
-                    print(f"[TextProcessor] ✓ pdfplumber extraction successful ({len(full_text)} chars)")
+                    print(f"[TextProcessor] pdfplumber extraction successful ({len(full_text)} chars)")
                     return full_text, "pdfplumber"
         
+        except ImportError:
+             print("[TextProcessor] pdfplumber not installed. Skipping.")
         except Exception as e:
             print(f"[TextProcessor] pdfplumber failed: {e}")
-        
+
+        # Fallback to pypdf (Pure Python, very reliable)
+        try:
+            import pypdf
+            full_text = ""
+            print(f"[TextProcessor] Trying pypdf extraction...")
+            
+            pdf_reader = pypdf.PdfReader(io.BytesIO(file_content))
+            for page in pdf_reader.pages:
+                full_text += page.extract_text() + "\n"
+            
+            if len(full_text.strip()) > 50:
+                 print(f"[TextProcessor] pypdf extraction successful ({len(full_text)} chars)")
+                 return full_text, "pypdf"
+        except ImportError:
+            print("[TextProcessor] pypdf not installed. Skipping.")
+        except Exception as e:
+             print(f"[TextProcessor] pypdf extraction failed: {e}")
+
+
         # Last resort: OCR with Pytesseract
         try:
             import pytesseract
@@ -119,8 +143,12 @@ class TextProcessor:
             print(f"[TextProcessor] Attempting OCR extraction (max {max_ocr_pages} pages)...")
             
             # Convert PDF to images (limit pages for performance)
-            images = convert_from_bytes(file_content, dpi=300, first_page=1, last_page=max_ocr_pages)
-            
+            try:
+                images = convert_from_bytes(file_content, dpi=300, first_page=1, last_page=max_ocr_pages)
+            except Exception as poppler_error:
+                print(f"[TextProcessor] ⚠️ OCR Failed: {poppler_error}. Is Poppler installed and in PATH?")
+                return f"Error: Could not process PDF. Please install Poppler or ensure the PDF is text-readable.", "failed"
+
             full_text = ""
             for i, image in enumerate(images):
                 print(f"[TextProcessor] OCR processing page {i+1}/{len(images)}...")
@@ -128,7 +156,7 @@ class TextProcessor:
                 full_text += text + "\n"
             
             if len(full_text.strip()) > 50:
-                print(f"[TextProcessor] ✓ OCR extraction successful ({len(full_text)} chars)")
+                print(f"[TextProcessor] OCR extraction successful ({len(full_text)} chars)")
                 return full_text, "ocr"
             else:
                 return "Error: OCR extraction yielded no meaningful text.", "failed"

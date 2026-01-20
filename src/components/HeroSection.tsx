@@ -81,7 +81,7 @@ const HeroSection = () => {
         >
           <img 
             src="/demo-screenshot.png" 
-            alt="Legal Compass AI Demo Interface"
+            alt="LegalAi Demo Interface"
             className="mx-auto rounded-2xl object-cover h-full object-left-top"
             draggable={false}
           />

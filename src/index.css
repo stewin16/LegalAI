@@ -77,6 +77,32 @@
   animation: accordion-down 0.2s ease-out;
 }
 
+
 .animate-accordion-up {
   animation: accordion-up 0.2s ease-out;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #09090b; 
+}
+
+::-webkit-scrollbar-thumb {
+    background: #27272a; 
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #3f3f46; 
+}
+
+/* Firefox */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: #27272a #09090b;
 }

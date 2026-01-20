@@ -35,7 +35,8 @@ const FeaturesSection = () => {
     return (
         <section className="py-32 px-4 bg-black relative overflow-hidden">
              {/* Background Gradients */}
-            <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-purple-900/20 via-black to-black pointer-events-none" />
+            {/* Background Gradients - Removed as per user request */}
+            {/* <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-purple-900/20 via-black to-black pointer-events-none" /> */}
 
             <div className="container mx-auto max-w-6xl relative z-10">
                 <div className="text-center mb-20">

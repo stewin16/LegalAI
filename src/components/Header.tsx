@@ -1,7 +1,7 @@
 import { Navbar } from "./ui/mini-navbar";
 
-const Header = () => {
-  return <Navbar />;
+const Header = ({ autoHide = false }: { autoHide?: boolean }) => {
+  return <Navbar autoHide={autoHide} />;
 };
 
 export default Header;

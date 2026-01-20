@@ -7,7 +7,7 @@ export default function FAQSection() {
         {
             id: 'item-1',
             question: 'How accurate is the legal information provided?',
-            answer: 'Legal Compass AI achieves 98% accuracy by retrieving answers strictly from the official Bharatiya Nyaya Sanhita (BNS), IPC, and Supreme Court judgments. Our RAG engine prevents hallucinations by citing verified sources for every claim.',
+            answer: 'LegalAi achieves 98% accuracy by retrieving answers strictly from the official Bharatiya Nyaya Sanhita (BNS), IPC, and Supreme Court judgments. Our RAG engine prevents hallucinations by citing verified sources for every claim.',
         },
         {
             id: 'item-2',
@@ -17,7 +17,7 @@ export default function FAQSection() {
         {
             id: 'item-3',
             question: 'Is this tool a substitute for a lawyer?',
-            answer: 'No. Legal Compass AI is an assistive research tool designed to help lawyers, students, and citizens understand the law faster. It does not provide legal advice or representation in court.',
+            answer: 'No. LegalAi is an assistive research tool designed to help lawyers, students, and citizens understand the law faster. It does not provide legal advice or representation in court.',
         },
         {
             id: 'item-4',

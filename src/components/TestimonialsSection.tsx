@@ -5,7 +5,7 @@ const TestimonialsSection = () => {
     {
       name: "Adv. Priya Sharma",
       role: "Criminal Defense Lawyer",
-      content: "Legal Compass AI has completely transformed how I research IPC vs BNS changes. The side-by-side comparison saves me hours every week.",
+      content: "LegalAi has completely transformed how I research IPC vs BNS changes. The side-by-side comparison saves me hours every week.",
       avatar: "👩‍⚖️"
     },
     {
@@ -23,7 +23,7 @@ const TestimonialsSection = () => {
     {
       name: "Advocate Arjun Patel",
       role: "High Court Lawyer",
-      content: "Instant case law citations and neutral analysis make Legal Compass AI my go-to research tool every single day.",
+      content: "Instant case law citations and neutral analysis make LegalAi my go-to research tool every single day.",
       avatar: "👨‍⚖️"
     }
   ];
@@ -45,7 +45,7 @@ const TestimonialsSection = () => {
           transition={{ duration: 0.7 }}
           className="text-lg text-center text-[#f8f8f8]/70"
         >
-          Join thousands of lawyers and students using Legal Compass AI
+          Join thousands of lawyers and students using LegalAi
         </motion.p>
       </div>
 

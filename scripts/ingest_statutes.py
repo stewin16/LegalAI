@@ -6,8 +6,8 @@ import re
 # --- CONFIGURATION ---
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUTPUT_FILE = os.path.join(BASE_DIR, "rag_service", "data", "ipc_bns_mapping.json")
-BNS_CSV = os.path.join(BASE_DIR, "bns_sections.csv")
-IPC_CSV = os.path.join(BASE_DIR, "ipc_sections.csv") # Optional
+BNS_CSV = os.path.join(BASE_DIR, "datasets resources", "bns_sections.csv")
+IPC_CSV = os.path.join(BASE_DIR, "datasets resources", "ipc_sections.csv") # Optional
 print(f"DEBUG: Checking IPC at: {os.path.abspath(IPC_CSV)}")
 
 # Curated Manual Mappings (The "Holy Grail" links)

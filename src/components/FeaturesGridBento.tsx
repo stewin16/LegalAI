@@ -7,42 +7,42 @@ const FeaturesGridBento = () => {
       description: 'Side-by-side analysis of Indian Penal Code and Bharatiya Nyaya Sanhita with instant diff highlighting',
       icon: '⚖️',
       size: 'col-span-2 row-span-1',
-      gradient: 'from-blue-500/20 to-purple-500/20'
+      // gradient: 'from-blue-500/20 to-purple-500/20'
     },
     {
       title: 'AI Legal Assistant',
       description: 'Ask questions in natural language and get precise answers with case law citations',
       icon: '💬',
       size: 'col-span-1 row-span-2',
-      gradient: 'from-green-500/20 to-blue-500/20'
+      // gradient: 'from-green-500/20 to-blue-500/20'
     },
     {
       title: 'Document Summarizer',
       description: 'Condense lengthy legal documents into actionable insights in seconds',
       icon: '📄',
       size: 'col-span-1 row-span-1',
-      gradient: 'from-orange-500/20 to-red-500/20'
+      // gradient: 'from-orange-500/20 to-red-500/20'
     },
     {
       title: 'Neutral Analysis',
       description: 'Unbiased AI-powered interpretation of legal changes and implications',
       icon: '🔍',
       size: 'col-span-1 row-span-1',
-      gradient: 'from-purple-500/20 to-pink-500/20'
+      // gradient: 'from-purple-500/20 to-pink-500/20'
     },
     {
       title: 'Case Law Search',
       description: 'Instantly search through landmark Supreme Court judgments and precedents',
       icon: '📚',
       size: 'col-span-1 row-span-1',
-      gradient: 'from-cyan-500/20 to-blue-500/20'
+      // gradient: 'from-cyan-500/20 to-blue-500/20'
     },
     {
       title: 'Secure & Private',
       description: 'Enterprise-grade security with full data privacy compliance for all queries',
       icon: '🔒',
       size: 'col-span-2 row-span-1',
-      gradient: 'from-red-500/20 to-orange-500/20'
+      // gradient: 'from-red-500/20 to-orange-500/20'
     }
   ];
 
@@ -106,7 +106,8 @@ const FeaturesGridBento = () => {
               `}
             >
               {/* Background Gradient */}
-              <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+              {/* Background Gradient - Removed */}
+              {/* <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} /> */}
               
               <div className="relative z-10 h-full flex flex-col">
                 <div className="text-3xl mb-4">{feature.icon}</div>

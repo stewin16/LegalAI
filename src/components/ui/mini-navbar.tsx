@@ -20,9 +20,10 @@ const AnimatedNavLink = ({ href, children, isActive }: { href: string; children:
   );
 };
 
-export function Navbar() {
+export function Navbar({ autoHide = false }: { autoHide?: boolean }) {
   const [isOpen, setIsOpen] = useState(false);
   const [headerShapeClass, setHeaderShapeClass] = useState('rounded-full');
+  const [isHovered, setIsHovered] = useState(false);
   const shapeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const location = useLocation();
 
@@ -52,28 +53,46 @@ export function Navbar() {
 
   const logoElement = (
     <Link to="/" className="relative flex items-center justify-center gap-2 group">
-        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-purple-500 to-indigo-500 flex items-center justify-center shadow-lg group-hover:shadow-purple-500/50 transition-all">
-             <Scale className="w-4 h-4 text-white" />
+        <div className="w-9 h-9 rounded-full overflow-hidden border border-white/20 shadow-lg group-hover:shadow-purple-500/50 transition-all">
+             <img src="/logo.jpg" alt="LegalAi Logo" className="w-full h-full object-cover" />
         </div>
-        <span className="font-serif font-bold text-white hidden sm:block">LegalAI</span>
+        <span className="font-serif font-bold text-white hidden sm:block text-xl tracking-tight">LegalAi</span>
     </Link>
   );
 
   const navLinksData = [
     { label: 'Home', href: '/' },
     { label: 'Assistant', href: '/chat' },
+    { label: 'Draft', href: '/draft' },
     { label: 'Compare', href: '/compare' },
     { label: 'Summarizer', href: '/summarize' },
   ];
 
+  const sidebarVisible = autoHide ? (isHovered || isOpen) : true;
+
   return (
-    <header className={`fixed top-6 left-1/2 transform -translate-x-1/2 z-50
+    <>
+      {/* Trigger Zone for Auto-Hide - Centered Area Only */}
+      {autoHide && (
+        <div 
+            className="fixed top-0 left-1/2 -translate-x-1/2 w-[60%] sm:w-[500px] h-6 z-50 bg-transparent"
+            onMouseEnter={() => setIsHovered(true)}
+        />
+      )}
+
+      <header 
+         onMouseEnter={() => autoHide && setIsHovered(true)}
+         onMouseLeave={() => autoHide && setIsHovered(false)}
+         className={`fixed top-6 left-1/2 transform -translate-x-1/2 z-50
                        flex flex-col items-center
                        pl-4 pr-4 py-3 backdrop-blur-md
                        ${headerShapeClass}
                        border border-white/10 bg-black/50
                        w-[calc(100%-2rem)] sm:w-auto min-w-[320px] sm:min-w-[800px]
-                       transition-[border-radius] duration-300 ease-in-out shadow-2xl`}>
+                       transition-all duration-300 ease-in-out shadow-2xl
+                       ${autoHide && !sidebarVisible ? '-translate-y-[150%] opacity-0 pointer-events-none' : 'translate-y-0 opacity-100 pointer-events-auto'}
+                       `}
+      >
 
       <div className="flex items-center justify-between w-full gap-x-6 sm:gap-x-8">
         <div className="flex items-center">
@@ -123,5 +142,6 @@ export function Navbar() {
         </div>
       </div>
     </header>
+    </>
   );
 }

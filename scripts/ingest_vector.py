@@ -38,21 +38,31 @@ def ingest_vector_db():
                 bns_text = item.get("text_bns", "")
                 ipc_text = item.get("text_ipc", "") or ""
                 topic = item.get("topic", "")
-                
-                # The text to embed
-                doc_text = f"Statute: Bharatiya Nyaya Sanhita (BNS) Section {item['bns']}. Topic: {topic}. Description: {bns_text}"
-                if item.get("ipc"):
-                     doc_text += f" Corresponding Indian Penal Code (IPC) Section {item['ipc']}: {ipc_text}"
-                
-                documents.append(doc_text)
+
+                # BNS document (kept separate for citation accuracy)
+                bns_doc = f"Statute: Bharatiya Nyaya Sanhita (BNS) Section {item['bns']}. Topic: {topic}. Description: {bns_text}"
+                documents.append(bns_doc)
                 metadatas.append({
                     "type": "statute",
-                    "source": "BNS/IPC",
+                    "source": "Bharatiya Nyaya Sanhita, 2023",
+                    "law": "BNS",
                     "bns_section": item.get("bns", ""),
-                    "ipc_section": item.get("ipc", "") or "N/A",
                     "topic": topic
                 })
                 ids.append(f"statute_bns_{item['bns']}")
+
+                # IPC document (only if mapping exists)
+                if item.get("ipc"):
+                    ipc_doc = f"Statute: Indian Penal Code (IPC) Section {item['ipc']}. Topic: {topic}. Description: {ipc_text}"
+                    documents.append(ipc_doc)
+                    metadatas.append({
+                        "type": "statute",
+                        "source": "Indian Penal Code, 1860",
+                        "law": "IPC",
+                        "ipc_section": item.get("ipc", ""),
+                        "topic": topic
+                    })
+                    ids.append(f"statute_ipc_{item['ipc']}")
     
     # 3. Process Judgments (Golden Dataset)
     golden_path = os.path.join(DATA_DIR, "golden_dataset.json")
@@ -83,7 +93,33 @@ def ingest_vector_db():
                     })
                     ids.append(f"judgment_{len(ids)}") # Unique incrementing ID
 
-    # 4. Upsert to Chroma
+    # 4. Process IT Act (Raw Text)
+    it_act_path = os.path.join(BASE_DIR, "datasets resources", "it.txt")
+    if os.path.exists(it_act_path):
+        print(f"📡 Processing IT Act from {it_act_path}...")
+        with open(it_act_path, 'r', encoding='utf-8') as f:
+            text = f.read()
+            
+            # Simple chunking for IT Act
+            chunk_size = 1000
+            overlap = 200
+            
+            for i in range(0, len(text), chunk_size - overlap):
+                chunk = text[i:i + chunk_size]
+                if len(chunk) < 50: continue
+                
+                doc_text = f"Statute: Information Technology Act, 2000. Text: {chunk}"
+                
+                documents.append(doc_text)
+                metadatas.append({
+                    "type": "statute",
+                    "source": "IT Act 2000",
+                    "topic": "Cyber Law"
+                })
+                ids.append(f"it_act_{i}")
+        print(f"✅ Added {len(ids) - len(judgments) if 'judgments' in locals() else 'many'} IT Act chunks.")
+
+    # 5. Upsert to Chroma
     if documents:
         print(f"💾 Upserting {len(documents)} documents to Vector DB... (This may take a moment)")
         # Batching is better for large datasets, but 1500 is ok for one shot here

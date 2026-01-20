@@ -188,7 +188,7 @@ function FeaturesSectionMinimal() {
         </div>
 
         <footer className="mt-16 border-t border-white/10 pt-6 text-xs uppercase tracking-[0.2em] text-white/40">
-           Legal Compass AI • 2025
+           LegalAi • 2025
         </footer>
       </section>
     </div>

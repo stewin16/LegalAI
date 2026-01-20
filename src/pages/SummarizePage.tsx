@@ -1,15 +1,63 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import html2canvas from 'html2canvas';
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
-import { FileText, Upload, CheckCircle, Sparkles, AlertCircle, Loader2 } from "lucide-react";
+import { FileText, Upload, CheckCircle, Sparkles, AlertCircle, Loader2, Download, History, Trash2, X } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import jsPDF from 'jspdf';
+
+interface SummaryHistory {
+    id: string;
+    fileName: string;
+    summary: string;
+    timestamp: number;
+}
 
 const SummarizePage = () => {
     const [file, setFile] = useState<File | null>(null);
     const [isUploading, setIsUploading] = useState(false);
     const [summary, setSummary] = useState<string | null>(null);
+    const [history, setHistory] = useState<SummaryHistory[]>([]);
+    const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+
+    // Load history from local storage on mount
+    useEffect(() => {
+        const savedHistory = localStorage.getItem("summaryHistory");
+        if (savedHistory) {
+            try {
+                setHistory(JSON.parse(savedHistory));
+            } catch (e) {
+                console.error("Failed to parse history", e);
+            }
+        }
+    }, []);
+
+    const saveToHistory = (fileName: string, summaryText: string) => {
+        const newEntry: SummaryHistory = {
+            id: Date.now().toString(),
+            fileName,
+            summary: summaryText,
+            timestamp: Date.now(),
+        };
+        const updatedHistory = [newEntry, ...history].slice(0, 50); // Keep last 50
+        setHistory(updatedHistory);
+        localStorage.setItem("summaryHistory", JSON.stringify(updatedHistory));
+    };
+
+    const deleteHistoryItem = (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        const updatedHistory = history.filter(item => item.id !== id);
+        setHistory(updatedHistory);
+        localStorage.setItem("summaryHistory", JSON.stringify(updatedHistory));
+    };
+
+    const loadHistoryItem = (item: SummaryHistory) => {
+        setSummary(item.summary);
+        setFile({ name: item.fileName, size: 0 } as File); // Mock file object for display
+        setIsHistoryOpen(false);
+    };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -32,7 +80,9 @@ const SummarizePage = () => {
             });
             
             const data = await response.json();
-            setSummary(data.summary || "No summary generated.");
+            const summaryText = data.summary || "No summary generated.";
+            setSummary(summaryText);
+            saveToHistory(file.name, summaryText);
         } catch (error) {
             console.error("Upload Error:", error);
             setSummary("Error uploading file. Please ensure the backend is running.");
@@ -41,25 +91,230 @@ const SummarizePage = () => {
         }
     };
 
-    return (
-        <div className="min-h-screen flex flex-col bg-[#050505] text-white selection:bg-purple-500/30">
-            <Header />
-            
-            {/* Background Ambient */}
-             <div className="fixed inset-0 pointer-events-none">
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-gradient-to-b from-purple-900/10 to-transparent opacity-50" />
-            </div>
+    const handleDownload = async () => {
+        if (!summary) return;
+        
+        // Create a hidden wrapper
+        const wrapper = document.createElement('div');
+        wrapper.style.position = 'fixed';
+        wrapper.style.top = '0';
+        wrapper.style.left = '0';
+        wrapper.style.width = '0';
+        wrapper.style.height = '0';
+        wrapper.style.overflow = 'hidden'; // Hide content
+        wrapper.style.zIndex = '-9999';
+        document.body.appendChild(wrapper);
 
-            <div className="container mx-auto px-4 pt-32 pb-24 flex-1 relative z-10 max-w-5xl">
+        // Create distinct PDF container inside wrapper
+        const pdfContainer = document.createElement('div');
+        pdfContainer.style.width = '595px'; // A4 width in pt
+        pdfContainer.style.padding = '40px';
+        pdfContainer.style.backgroundColor = '#ffffff';
+        pdfContainer.style.color = '#000000';
+        pdfContainer.style.opacity = '1';
+        pdfContainer.style.position = 'relative'; // Relative to wrapper
+        
+        // Force standard font
+        pdfContainer.style.fontFamily = 'Arial, Helvetica, sans-serif'; 
+        
+        // Header - Using Table for robust layout to avoid overlaps
+        const header = document.createElement('div');
+        header.innerHTML = `
+            <div style="margin-bottom: 30px; border-bottom: 2px solid #000; padding-bottom: 10px;">
+                <h1 style="font-size: 28px; font-weight: bold; margin: 0 0 10px 0; color: #000000; font-family: Arial, sans-serif;">Legal Document Summary</h1>
+                <table style="width: 100%; border-collapse: collapse; font-family: Arial, sans-serif;">
+                    <tr>
+                        <td style="width: 100px; font-size: 11px; color: #444; font-weight: bold; padding: 2px 0;">Source File:</td>
+                        <td style="font-size: 11px; color: #000; padding: 2px 0;">${file?.name || 'Unknown'}</td>
+                    </tr>
+                    <tr>
+                        <td style="width: 100px; font-size: 11px; color: #444; font-weight: bold; padding: 2px 0;">Generated:</td>
+                        <td style="font-size: 11px; color: #000; padding: 2px 0;">${new Date().toLocaleString()}</td>
+                    </tr>
+                </table>
+            </div>
+        `;
+        pdfContainer.appendChild(header);
+
+        // Content
+        const contentSource = document.getElementById('summary-content');
+        if (contentSource) {
+            const contentClone = contentSource.cloneNode(true) as HTMLElement;
+            // Force styles for PDF
+            contentClone.className = ''; // Remove all classes
+            contentClone.style.color = '#1a1a1a';
+            contentClone.style.fontSize = '12px';
+            contentClone.style.lineHeight = '1.6';
+            
+            // Clean up children styles manually since we removed classes
+            const allElements = contentClone.querySelectorAll('*');
+            allElements.forEach((el: any) => {
+                // Style cleanup
+                el.style.color = '#1a1a1a';
+                if(el.tagName === 'H1') { el.style.fontSize = '20px'; el.style.fontWeight = 'bold'; el.style.marginTop = '15px'; }
+                if(el.tagName === 'H2') { el.style.fontSize = '18px'; el.style.fontWeight = 'bold'; el.style.marginTop = '12px'; }
+                if(el.tagName === 'H3') { el.style.fontSize = '16px'; el.style.fontWeight = 'bold'; el.style.marginTop = '10px'; }
+                if(el.tagName === 'P') { el.style.marginBottom = '10px'; }
+                if(el.tagName === 'UL') { el.style.paddingLeft = '20px'; el.style.marginBottom = '10px'; }
+                if(el.tagName === 'OL') { el.style.paddingLeft = '20px'; el.style.marginBottom = '10px'; }
+                if(el.tagName === 'LI') { el.style.marginBottom = '5px'; }
+                
+                // Content Sanitization: Remove emojis and garbage chars
+                if (el.childNodes && el.childNodes.length > 0) {
+                     el.childNodes.forEach((node: any) => {
+                        if (node.nodeType === 3) { // Text node
+                            // Remove emojis and non-basic punctuation/alphanumeric
+                            // Keep basic latin, numbers, punctuation, common symbols
+                            // Strip out ranges usually associated with emojis and symbols
+                            let text = node.textContent;
+                            // Simplistic emoji stripper
+                            text = text.replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, '');
+                            node.textContent = text;
+                        }
+                     });
+                }
+            });
+
+            pdfContainer.appendChild(contentClone);
+        }
+        
+        wrapper.appendChild(pdfContainer);
+
+        // Allow render (even though hidden)
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        const doc = new jsPDF('p', 'pt', 'a4');
+        
+        try {
+            await doc.html(pdfContainer, {
+                callback: function (doc) {
+                    doc.save(`Summary_${file?.name.replace(/\.[^/.]+$/, "") || 'Legal_Document'}.pdf`);
+                    if (document.body.contains(wrapper)) {
+                        document.body.removeChild(wrapper);
+                    }
+                },
+                x: 0,
+                y: 0,
+                width: 595, // Match container width
+                windowWidth: 595,
+                margin: [20, 0, 20, 0],
+                autoPaging: 'text',
+                html2canvas: {
+                    scale: 1,
+                    useCORS: true,
+                    logging: false
+                }
+            });
+        } catch (e) {
+            console.error("PDF Generation failed", e);
+            if (document.body.contains(wrapper)) {
+                document.body.removeChild(wrapper);
+            }
+        }
+    };
+
+    const handleReset = () => {
+        setFile(null);
+        setSummary(null);
+    };
+
+    return (
+        <div className="min-h-screen flex flex-col bg-[#050505] text-white selection:bg-purple-500/30 overflow-x-hidden">
+            <Header autoHide />
+            
+             {/* Background Ambient */}
+             {/* Background Ambient - Removed */}
+            {/* <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-7xl pointer-events-none opacity-20">
+                <div className="absolute top-20 left-1/4 w-96 h-96 bg-purple-600/30 rounded-full blur-[100px]" />
+                <div className="absolute bottom-20 right-1/4 w-96 h-96 bg-indigo-600/30 rounded-full blur-[100px]" />
+            </div> */}
+
+            {/* History Sidebar Button */}
+            <button 
+                onClick={() => setIsHistoryOpen(true)}
+                className="fixed left-6 top-24 z-30 flex items-center gap-2 px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full backdrop-blur-md transition-all group"
+            >
+                <History className="w-5 h-5 text-gray-400 group-hover:text-purple-400" />
+                <span className="text-sm font-medium text-gray-300 group-hover:text-white hidden md:inline">History</span>
+            </button>
+
+            {/* History Sidebar */}
+            <AnimatePresence>
+                {isHistoryOpen && (
+                    <>
+                        {/* Backdrop */}
+                        <motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setIsHistoryOpen(false)}
+                            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
+                        />
+                        {/* Sidebar Panel */}
+                        <motion.div 
+                            initial={{ x: "-100%" }}
+                            animate={{ x: 0 }}
+                            exit={{ x: "-100%" }}
+                            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                            className="fixed left-0 top-0 bottom-0 w-80 bg-[#0A0A0A] border-r border-white/10 z-50 p-6 shadow-2xl overflow-y-auto"
+                        >
+                            <div className="flex items-center justify-between mb-8">
+                                <h2 className="text-xl font-serif font-bold text-white flex items-center gap-2">
+                                    <History className="w-5 h-5 text-purple-400" />
+                                    History
+                                </h2>
+                                <button 
+                                    onClick={() => setIsHistoryOpen(false)}
+                                    className="p-1 hover:bg-white/10 rounded-full transition-colors"
+                                >
+                                    <X className="w-5 h-5 text-gray-400" />
+                                </button>
+                            </div>
+
+                            <div className="space-y-4">
+                                {history.length === 0 ? (
+                                    <div className="text-center py-10 text-gray-500">
+                                        <History className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                                        <p>No recent summaries</p>
+                                    </div>
+                                ) : (
+                                    history.map((item) => (
+                                        <div 
+                                            key={item.id}
+                                            onClick={() => loadHistoryItem(item)}
+                                            className="group relative p-4 rounded-xl bg-white/5 border border-white/5 hover:border-purple-500/30 hover:bg-white/10 transition-all cursor-pointer"
+                                        >
+                                            <div className="flex items-center gap-3 mb-2">
+                                                <FileText className="w-4 h-4 text-purple-400 shrink-0" />
+                                                <p className="text-sm font-medium text-gray-200 truncate">{item.fileName}</p>
+                                            </div>
+                                            <p className="text-xs text-gray-500">
+                                                {new Date(item.timestamp).toLocaleDateString()} • {new Date(item.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                            </p>
+                                            
+                                            <button 
+                                                onClick={(e) => deleteHistoryItem(item.id, e)}
+                                                className="absolute top-2 right-2 p-1.5 opacity-0 group-hover:opacity-100 hover:bg-red-500/20 hover:text-red-400 rounded-lg transition-all"
+                                                title="Delete"
+                                            >
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                            </button>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
+
+            <div className="container mx-auto px-4 pt-12 pb-24 flex-1 relative z-10 max-w-5xl">
                 <motion.div 
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="flex flex-col items-center mb-12 text-center"
                 >
-                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-white/5 text-xs font-medium text-gray-400 mb-4">
-                        <Sparkles className="w-3 h-3 text-purple-400" />
-                        <span>AI Document Intelligence</span>
-                    </div>
+
                     <h1 className="text-4xl md:text-5xl font-serif font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-b from-white to-white/60">
                         Legal Document Summarizer
                     </h1>
@@ -68,108 +323,149 @@ const SummarizePage = () => {
                     </p>
                 </motion.div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                <div className="flex flex-col items-center gap-8 w-full">
                     {/* Upload Section */}
+                    
                     <motion.div 
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.1 }}
-                        className="bg-white/5 border border-white/10 rounded-3xl p-1 overflow-hidden"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="w-full max-w-2xl"
                     >   
-                        <div className="bg-black/50 backdrop-blur-xl rounded-[20px] p-6 h-full">
-                            <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
-                                <Upload className="w-5 h-5 text-purple-400" />
-                                Upload Document
-                            </h3>
+                        <div className="flex flex-col items-center gap-6">
+                            <input 
+                                type="file" 
+                                id="file-upload"
+                                accept=".pdf,.docx,.txt" 
+                                className="hidden"
+                                onChange={handleFileChange}
+                            />
                             
-                            <div className="border-2 border-dashed border-white/10 rounded-2xl p-10 flex flex-col items-center justify-center text-center hover:bg-white/5 transition-colors relative group">
-                                <input 
-                                    type="file" 
-                                    accept=".pdf,.docx,.txt" 
-                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
-                                    onChange={handleFileChange}
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-tr from-purple-500/5 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
-                                
-                                <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                                    <FileText className="w-8 h-8 text-gray-400 group-hover:text-purple-400 transition-colors" />
-                                </div>
-                                <p className="font-medium text-gray-200">Drag & Drop or Click to Upload</p>
-                                <p className="text-sm text-gray-500 mt-2">PDF, DOCX, TXT (Max 10MB)</p>
-                            </div>
-
-                            <AnimatePresence>
-                                {file && (
-                                    <motion.div 
-                                        initial={{ opacity: 0, height: 0 }}
-                                        animate={{ opacity: 1, height: "auto" }}
-                                        exit={{ opacity: 0, height: 0 }}
-                                        className="mt-6"
+                            {!file ? (
+                                <>
+                                    <label 
+                                        htmlFor="file-upload"
+                                        className="group relative inline-flex items-center gap-3 px-8 py-4 bg-white text-black rounded-full font-semibold text-lg cursor-pointer hover:bg-gray-200 transition-all shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:scale-105 active:scale-95"
                                     >
-                                        <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/10">
-                                            <div className="flex items-center gap-3 overflow-hidden">
-                                                <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center shrink-0">
-                                                    <FileText className="w-5 h-5 text-purple-400" />
-                                                </div>
-                                                <div className="min-w-0">
-                                                    <p className="text-sm font-medium text-white truncate">{file.name}</p>
-                                                    <p className="text-xs text-gray-500">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
-                                                </div>
-                                            </div>
-                                            <Button 
-                                                size="sm" 
-                                                onClick={handleUpload} 
-                                                disabled={isUploading}
-                                                className="bg-white text-black hover:bg-gray-200 rounded-full px-6 transition-transform active:scale-95"
-                                            >
-                                                {isUploading ? (
-                                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                                ) : "Summarize"}
-                                            </Button>
+                                        <Upload className="w-5 h-5 text-purple-600" />
+                                        Upload Document
+                                    </label>
+                                    
+                                    {/* Placeholder when no file/summary */}
+                                    <div className="mt-12 w-full max-w-md p-8 rounded-3xl border border-dashed border-white/10 bg-white/5 flex flex-col items-center text-center opacity-50">
+                                        <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
+                                             <FileText className="w-8 h-8 text-gray-500" />
                                         </div>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
+                                        <p className="text-lg font-serif text-gray-400">View your summary here</p>
+                                        <p className="text-sm text-gray-600 mt-2">Upload a document to see the AI-generated analysis.</p>
+                                    </div>
+                                </>
+                            ) : (
+                                !summary && (
+                                    <div className="flex flex-col items-center gap-4 w-full animate-in fade-in slide-in-from-bottom-4">
+                                        <div className="flex items-center gap-3 px-6 py-3 bg-white/10 rounded-2xl border border-white/10 backdrop-blur-md">
+                                            <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center shrink-0">
+                                                <FileText className="w-5 h-5 text-purple-400" />
+                                            </div>
+                                            <div className="min-w-0 text-left">
+                                                <p className="text-sm font-medium text-white truncate max-w-[200px]">{file.name}</p>
+                                                <p className="text-xs text-gray-400">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                                            </div>
+                                            <button 
+                                                onClick={() => { setFile(null); setSummary(null); }}
+                                                className="ml-2 p-1 hover:bg-white/10 rounded-full text-gray-400 hover:text-white transition-colors"
+                                            >
+                                                <AlertCircle className="w-4 h-4 rotate-45" />
+                                            </button>
+                                        </div>
+                                        
+                                        <Button 
+                                            size="lg" 
+                                            onClick={handleUpload} 
+                                            disabled={isUploading}
+                                            className="h-12 px-8 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:opacity-90 transition-all shadow-lg shadow-purple-900/40"
+                                        >
+                                            {isUploading ? (
+                                                <>
+                                                    <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                                                    Summarizing...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Sparkles className="w-5 h-5 mr-2" />
+                                                    Generate Summary
+                                                </>
+                                            )}
+                                        </Button>
+                                    </div>
+                                )
+                            )}
                         </div>
                     </motion.div>
 
                     {/* Result Section */}
-                    <motion.div 
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.2 }}
-                        className="h-full min-h-[500px] bg-white/5 border border-white/10 rounded-3xl p-1 overflow-hidden flex flex-col"
-                    >
-                         <div className="bg-black/50 backdrop-blur-xl rounded-[20px] p-6 h-full flex flex-col relative overflow-hidden">
-                            <div className="flex items-center justify-between mb-6 relative z-10">
-                                <h3 className="text-lg font-semibold flex items-center gap-2">
-                                    <Sparkles className="w-5 h-5 text-yellow-400" />
-                                    AI Summary
-                                </h3>
-                                {summary && (
-                                    <span className="text-xs font-medium text-green-400 flex items-center gap-1.5 bg-green-500/10 px-2 py-1 rounded-full border border-green-500/20">
-                                        <CheckCircle className="w-3 h-3" /> Copied
-                                    </span>
-                                )}
-                            </div>
+                    <AnimatePresence>
+                        {summary && (
+                            <motion.div 
+                                initial={{ opacity: 0, y: 40 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="w-full mt-8"
+                            >
+                                <div className="bg-black/50 backdrop-blur-xl border border-white/10 rounded-3xl p-8 relative overflow-hidden min-h-[60vh]">
+                                    <div className="flex items-center justify-between mb-8 relative z-10 border-b border-white/5 pb-4">
+                                        <h3 className="text-2xl font-serif font-bold flex items-center gap-3">
+                                            <Sparkles className="w-6 h-6 text-purple-400" />
+                                            AI Summary
+                                        </h3>
+                                        
+                                        <div className="flex items-center gap-3">
+                                            <Button
+                                                onClick={handleDownload}
+                                                variant="outline"
+                                                size="sm"
+                                                className="hidden sm:flex items-center gap-2 bg-white/5 border-white/10 hover:bg-white/10 text-white"
+                                            >
+                                                <Download className="w-4 h-4" />
+                                                Download PDF
+                                            </Button>
+                                        </div>
+                                    </div>
 
-                            <div className="flex-1 rounded-2xl bg-black/40 border border-white/5 p-6 overflow-y-auto relative custom-scrollbar">
-                                {summary ? (
-                                    <div className="prose prose-invert prose-sm max-w-none">
+                                    <div id="summary-content" className="prose prose-invert prose-lg max-w-none text-gray-300 leading-relaxed z-10 relative">
                                         <ReactMarkdown>{summary}</ReactMarkdown>
                                     </div>
-                                ) : (
-                                    <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-600 opacity-60">
-                                        <FileText className="w-16 h-16 mb-4 opacity-20" />
-                                        <p>Summary will appear here...</p>
-                                    </div>
-                                )}
-                            </div>
-                            
-                            {/* Decorative Glow */}
-                            <div className="absolute -top-20 -right-20 w-64 h-64 bg-purple-500/20 rounded-full blur-[80px] pointer-events-none" />
-                        </div>
-                    </motion.div>
+
+                                    {/* Action Footer */}
+                                     <div className="mt-12 pt-8 border-t border-white/5 flex items-center justify-between relative z-10">
+                                         <p className="text-sm text-gray-500">
+                                             Generated by LegalAi
+                                         </p>
+                                         <div className="flex gap-4">
+                                             <Button 
+                                                 variant="outline"
+                                                 onClick={() => setIsHistoryOpen(true)}
+                                                 className="border-white/10 hover:bg-white/5 text-gray-400 hover:text-white"
+                                             >
+                                                 <History className="w-4 h-4 mr-2" />
+                                                 View History
+                                             </Button>
+                                             <Button 
+                                                 onClick={handleReset}
+                                                 className="bg-purple-600 hover:bg-purple-700 text-white"
+                                             >
+                                                 <Upload className="w-4 h-4 mr-2" />
+                                                 Try Another Document
+                                             </Button>
+                                         </div>
+                                     </div>
+                                    
+                                    {/* Decorative Glow */}
+                                    {/* Decorative Glow - Removed */}
+                                    {/* <div className="absolute top-0 right-0 w-96 h-96 bg-purple-500/10 rounded-full blur-[120px] pointer-events-none" />
+                                    <div className="absolute bottom-0 left-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none" /> */}
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
             </div>
             

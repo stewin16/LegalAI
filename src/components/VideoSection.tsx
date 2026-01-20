@@ -21,7 +21,7 @@ const VideoSection = () => {
           transition={{ duration: 0.7 }}
           className="text-lg mb-8 text-[#f8f8f8]/70"
         >
-          See Legal Compass AI in action and discover how easy it is to analyze legal changes
+          See LegalAi in action and discover how easy it is to analyze legal changes
         </motion.p>
       </div>
       <motion.div

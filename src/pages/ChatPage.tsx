@@ -5,7 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Loader2, Scale, Zap, BookOpen, Mic, MicOff, Download, Sparkles, Send } from "lucide-react";
+import { Loader2, Scale, Zap, BookOpen, Mic, MicOff, Download, Sparkles, Send, Menu, Plus, Trash2, MessageSquare, ExternalLink } from "lucide-react";
 import Header from "@/components/Header";
 import ReactMarkdown from "react-markdown";
 import { motion, AnimatePresence } from "framer-motion";
@@ -65,6 +65,42 @@ const ChatPage = () => {
   const [loadingText, setLoadingText] = useState(LOADING_TEXTS[0]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Conversation history state
+  const [conversations, setConversations] = useState<Array<{
+    id: string;
+    title: string;
+    messages: Message[];
+    timestamp: number;
+  }>>([]);
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  // Load conversations from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('legal-compass-conversations');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setConversations(parsed);
+        // Load the most recent conversation
+        if (parsed.length > 0) {
+          const latest = parsed[0];
+          setActiveConversationId(latest.id);
+          setMessages(latest.messages);
+        }
+      } catch (e) {
+        console.error('Failed to load conversations:', e);
+      }
+    }
+  }, []);
+
+  // Save conversations to localStorage whenever they change
+  useEffect(() => {
+    if (conversations.length > 0) {
+      localStorage.setItem('legal-compass-conversations', JSON.stringify(conversations));
+    }
+  }, [conversations]);
+
   useEffect(() => {
     if (scrollRef.current) {
         scrollRef.current.scrollIntoView({ behavior: 'smooth' });
@@ -103,13 +139,19 @@ const ChatPage = () => {
     }
   };
 
+  const getKanoonLink = (source: string, section: string) => {
+      // Create a smart search query for Indian Kanoon
+      const query = encodeURIComponent(`${source} ${section}`);
+      return `https://indiankanoon.org/search/?formInput=${query}`;
+  };
+
   const exportPDF = (msg: Message, query: string) => {
     const doc = new jsPDF();
     
     // Header
     doc.setFontSize(20);
     doc.setTextColor(40, 40, 40);
-    doc.text("Legal Compass AI - Research Report", 15, 20);
+    doc.text("LegalAi - Research Report", 15, 20);
     
     // Metadata
     doc.setFontSize(10);
@@ -123,17 +165,32 @@ const ChatPage = () => {
     
     // Content
     doc.setFontSize(11);
-    const splitText = doc.splitTextToSize(msg.content, 180);
+    
+    // Improved simple text cleaner for PDF
+    const cleanText = (text: string) => {
+        return text
+            .replace(/\*\*(.*?)\*\*/g, '$1') // Bold
+            .replace(/\*(.*?)\*/g, '$1')     // Italic
+            .replace(/##/g, '')              // Headings
+            .replace(/^#\s/gm, '')           // H1
+            .replace(/^-\s/gm, '• ')         // Bullets
+            .trim();
+    };
+
+    const splitText = doc.splitTextToSize(cleanText(msg.content), 180);
     doc.text(splitText, 15, 50);
     
     let yPos = 50 + (splitText.length * 7);
 
     // Citations
     if (msg.citations && msg.citations.length > 0) {
-        yPos += 10;
+        doc.addPage(); // Force new page for citations
+        yPos = 20;     // Reset Y position
+        
         doc.setFontSize(14);
+        doc.setTextColor(40, 40, 40);
         doc.text("Legal Citations", 15, yPos);
-        yPos += 5;
+        yPos += 10;
         
         const citationData = msg.citations.map(c => [c.source, c.section, c.text]);
         autoTable(doc, {
@@ -156,6 +213,114 @@ const ChatPage = () => {
     doc.save("legal-research-report.pdf");
   };
 
+  const exportFullChat = () => {
+    const doc = new jsPDF();
+    
+    // Header
+    doc.setFontSize(22);
+    doc.setTextColor(40, 40, 40);
+    doc.text("LegalAi - Conversation History", 15, 20);
+    
+    // Metadata
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Date: ${new Date().toLocaleDateString()} | Domain: ${domain}`, 15, 28);
+    
+    let yPos = 40;
+    
+    messages.forEach((msg) => {
+        // Page break check
+        if (yPos > 250) { 
+            doc.addPage(); 
+            yPos = 20; 
+        }
+        
+        // Role Header
+        doc.setFontSize(12);
+        if (msg.role === 'user') {
+            doc.setTextColor(0, 50, 150); // Muted Blue
+            doc.text("You:", 15, yPos);
+        } else {
+            doc.setTextColor(100, 0, 150); // Muted Purple
+            doc.text("LegalAi:", 15, yPos);
+        }
+        yPos += 7;
+        
+        // Content
+        doc.setFontSize(11);
+        doc.setTextColor(0, 0, 0);
+        
+        // Robust markdown stripping for full chat
+        const cleanContent = msg.content
+            .replace(/\*\*(.*?)\*\*/g, '$1') // Bold
+            .replace(/\*(.*?)\*/g, '$1')     // Italic
+            .replace(/##/g, '')              // Headings
+            .replace(/^#\s/gm, '')           // H1
+            .replace(/^-\s/gm, '• ')         // Bullets
+            .trim();
+
+        const splitText = doc.splitTextToSize(cleanContent, 180);
+        doc.text(splitText, 15, yPos);
+        
+        // Calculate new Y position based on text height
+        yPos += (splitText.length * 5) + 10;
+        
+        // Separator line
+        doc.setDrawColor(230, 230, 230);
+        doc.line(15, yPos - 5, 195, yPos - 5);
+    });
+    
+    doc.save("legal-compass-full-chat.pdf");
+  };
+
+  // Conversation management functions
+  const createNewChat = () => {
+    setMessages([]);
+    setActiveConversationId(null);
+    setInput("");
+  };
+
+  const switchConversation = (convId: string) => {
+    const conv = conversations.find(c => c.id === convId);
+    if (conv) {
+      setActiveConversationId(conv.id);
+      setMessages(conv.messages);
+    }
+  };
+
+  const deleteConversation = (convId: string) => {
+    setConversations(prev => prev.filter(c => c.id !== convId));
+    if (activeConversationId === convId) {
+      createNewChat();
+    }
+  };
+
+  const saveCurrentConversation = (updatedMessages: Message[]) => {
+    if (updatedMessages.length === 0) return;
+
+    const title = updatedMessages[0].content.slice(0, 40) + (updatedMessages[0].content.length > 40 ? '...' : '');
+    const timestamp = Date.now();
+
+    if (activeConversationId) {
+      // Update existing conversation
+      setConversations(prev => prev.map(c => 
+        c.id === activeConversationId 
+          ? { ...c, messages: updatedMessages, timestamp }
+          : c
+      ));
+    } else {
+      // Create new conversation
+      const newId = `conv_${timestamp}`;
+      setActiveConversationId(newId);
+      setConversations(prev => [{
+        id: newId,
+        title,
+        messages: updatedMessages,
+        timestamp
+      }, ...prev]);
+    }
+  };
+
   const handleSend = async (text = input) => {
     if (!text.trim()) return;
     
@@ -164,13 +329,23 @@ const ChatPage = () => {
     setInput("");
     setIsLoading(true);
 
+    // Auto-detect language based on input script
+    // If Devanagari characters are present, switch to Hindi. Otherwise, default to English.
+    const isHindiInput = /[\u0900-\u097F]/.test(text);
+    const useLanguage = isHindiInput ? 'hi' : 'en';
+    
+    // Update local state to reflect the change visually
+    if (useLanguage !== language) {
+        setLanguage(useLanguage);
+    }
+
     try {
         const response = await fetch('http://localhost:8000/query', { // Pointing directly to backend for stability
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
                 query: text, 
-                language, 
+                language: useLanguage, // Use determined language immediately 
                 domain, 
                 arguments_mode: argumentsMode,
                 analysis_mode: analysisMode 
@@ -180,242 +355,397 @@ const ChatPage = () => {
         const data = await response.json();
         
         if (data.answer) {
-            setMessages(prev => [...prev, { 
-                role: 'assistant', 
+            const newMessages = [...messages, userMsg, { 
+                role: 'assistant' as const, 
                 content: data.answer,
                 judgments: data.related_judgments,
                 arguments: data.arguments,
                 neutral_analysis: data.neutral_analysis,
                 citations: data.citations
-            }]);
+            }];
+            setMessages(newMessages);
+            saveCurrentConversation(newMessages);
         } else {
-             setMessages(prev => [...prev, { role: 'assistant', content: "Sorry, I couldn't process that request." }]);
+             const newMessages = [...messages, userMsg, { role: 'assistant' as const, content: "Sorry, I couldn't process that request." }];
+             setMessages(newMessages);
+             saveCurrentConversation(newMessages);
         }
     } catch (error) {
         console.error("Chat Error:", error);
-        setMessages(prev => [...prev, { role: 'assistant', content: "Error connecting to the server. Please ensure the backend is running." }]);
+        const newMessages = [...messages, userMsg, { role: 'assistant' as const, content: "Error connecting to the server. Please ensure the backend is running." }];
+        setMessages(newMessages);
+        saveCurrentConversation(newMessages);
     } finally {
         setIsLoading(false);
     }
   };
 
   return (
-    <div className="h-screen flex flex-col bg-[#050505] text-white overflow-hidden selection:bg-purple-500/30">
-      <Header />
+    <div className="h-screen flex flex-col bg-[#09090b] text-white selection:bg-purple-500/30 font-sans">
+      <Header autoHide />
       
-      <main className="flex-1 flex flex-col relative pt-32">
-         {/* Background Ambient */}
-         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-7xl pointer-events-none opacity-20">
-             <div className="absolute top-20 left-1/4 w-96 h-96 bg-purple-600/30 rounded-full blur-[100px]" />
-             <div className="absolute bottom-20 right-1/4 w-96 h-96 bg-indigo-600/30 rounded-full blur-[100px]" />
-         </div>
-
-         <div className="container mx-auto max-w-5xl h-full flex flex-col px-4 relative z-10">
-            {/* Controls Bar */}
-            <motion.div 
-               initial={{ opacity: 0, y: -20 }}
-               animate={{ opacity: 1, y: 0 }}
-               className="flex flex-wrap items-center justify-between gap-3 p-3 mb-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md"
+      {/* Main Layout Container */}
+      <div className="flex-1 flex overflow-hidden pt-0">
+        
+        {/* Sidebar - Now a direct child of the flex container */}
+        <AnimatePresence mode="wait">
+          {sidebarOpen && (
+            <motion.aside
+              initial={{ x: -280, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: -280, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              className="w-[260px] bg-[#0c0c0e] border-r border-[#27272a] flex flex-col shrink-0 z-20"
             >
-                <div className="flex items-center gap-2">
-                   <div className="flex items-center bg-black/40 rounded-lg p-1 border border-white/5">
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => setArgumentsMode(!argumentsMode)}
-                        className={cn("h-8 px-3 text-xs rounded-md transition-all", argumentsMode ? "bg-yellow-500/20 text-yellow-400" : "text-gray-400 hover:text-white")}
-                      >
-                         <Zap className="w-3 h-3 mr-1.5" /> Arguments
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => setAnalysisMode(!analysisMode)}
-                        className={cn("h-8 px-3 text-xs rounded-md transition-all", analysisMode ? "bg-blue-500/20 text-blue-400" : "text-gray-400 hover:text-white")}
-                      >
-                         <Scale className="w-3 h-3 mr-1.5" /> Analysis
-                      </Button>
+              <div className="p-3">
+                <Button
+                  onClick={createNewChat}
+                  className="w-full justify-start gap-2 bg-transparent hover:bg-[#27272a] text-sm font-medium text-gray-200 border border-[#27272a] h-10 px-3 transition-all"
+                >
+                  <Plus className="w-4 h-4" />
+                  New Chat
+                </Button>
+              </div>
+
+               <div className="flex-1 overflow-y-auto px-2 py-2 no-scrollbar">
+                 {conversations.length > 0 && (
+                   <div className="mb-4">
+                     <h3 className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Recent</h3>
+                     <div className="space-y-0.5">
+                       {conversations.map((conv) => (
+                         <div
+                           key={conv.id}
+                           onClick={() => switchConversation(conv.id)}
+                           className={cn(
+                             "group relative flex items-center gap-2 px-3 py-2.5 rounded-md cursor-pointer transition-colors text-sm",
+                             activeConversationId === conv.id 
+                               ? "bg-[#27272a] text-white" 
+                               : "text-gray-400 hover:bg-[#18181b] hover:text-gray-200"
+                           )}
+                         >
+                           <MessageSquare className="w-4 h-4 shrink-0 opacity-70" />
+                           <span className="flex-1 truncate font-normal">
+                             {conv.title}
+                           </span>
+                           <Button
+                             variant="ghost"
+                             size="icon"
+                             className="h-6 w-6 opacity-0 group-hover:opacity-100 -mr-1 hover:bg-white/10"
+                             onClick={(e) => {
+                               e.stopPropagation();
+                               deleteConversation(conv.id);
+                             }}
+                           >
+                             <Trash2 className="h-3.5 w-3.5 text-gray-400 hover:text-red-400" />
+                           </Button>
+                         </div>
+                       ))}
+                     </div>
                    </div>
-                </div>
+                 )}
+               </div>
+            </motion.aside>
+          )}
+        </AnimatePresence>
 
-                <div className="flex items-center gap-2">
-                    <Select value={domain} onValueChange={setDomain}>
-                        <SelectTrigger className="w-[140px] h-9 bg-black/40 border-white/10 text-xs text-gray-300">
-                            <SelectValue placeholder="Domain" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-black border-white/10 text-gray-300">
-                            <SelectItem value="all">All Domains</SelectItem>
-                            <SelectItem value="criminal">Criminal Law</SelectItem>
-                            <SelectItem value="corporate">Corporate Law</SelectItem>
-                        </SelectContent>
-                    </Select>
-                     <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => setLanguage(language === 'en' ? 'hi' : 'en')}
-                        className="h-9 w-9 p-0 bg-black/40 border-white/10 hover:bg-white/10 text-gray-300"
-                    >
-                        {language === 'en' ? 'EN' : 'HI'}
-                    </Button>
-                </div>
-            </motion.div>
+        {/* Main Chat Area */}
+        <main className="flex-1 flex flex-col relative min-w-0 bg-[#09090b]">
+           {/* Subtle Background Gradients */}
+           {/* Subtle Background Gradients - Removed as per user request */}
+           {/* <div className="absolute inset-0 pointer-events-none overflow-hidden">
+               <div className="absolute top-0 right-1/4 w-[500px] h-[500px] bg-purple-900/10 rounded-full blur-[120px]" />
+               <div className="absolute bottom-0 left-1/4 w-[500px] h-[500px] bg-blue-900/10 rounded-full blur-[120px]" />
+           </div> */}
 
-            {/* Chat Area */}
-            <ScrollArea className="flex-1 pr-4">
-                <div className="space-y-6 pb-4">
-                    <AnimatePresence>
-                        {messages.length === 0 && (
-                            <motion.div 
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                className="flex flex-col items-center justify-center min-h-[400px] text-center"
-                            >
-                                <div className="w-20 h-20 bg-gradient-to-tr from-purple-500/20 to-indigo-500/20 rounded-3xl flex items-center justify-center mb-6 border border-white/10">
-                                    <Sparkles className="w-10 h-10 text-purple-400" />
+           {/* Mobile Sidebar Toggle */}
+           {!sidebarOpen && (
+             <Button
+               variant="ghost"
+               size="icon"
+               onClick={() => setSidebarOpen(true)}
+               className="absolute top-4 left-4 z-30 text-gray-400 hover:text-white hover:bg-[#27272a]"
+             >
+               <Menu className="h-5 w-5" />
+             </Button>
+           )}
+
+           {/* Top Controls Bar - Simplified */}
+           <div className="w-full border-b border-[#27272a] px-6 py-3 flex items-center justify-end gap-3 bg-[#09090b]/80 backdrop-blur-sm z-10">
+               {sidebarOpen && (
+                 <Button
+                   variant="ghost"
+                   size="icon"
+                   onClick={() => setSidebarOpen(false)}
+                   className="mr-auto text-gray-400 hover:text-white"
+                 >
+                   <Menu className="h-5 w-5" />
+                 </Button>
+               )}
+               
+               <div className="flex items-center gap-1 bg-[#18181b] p-1 rounded-lg border border-[#27272a]">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => setArgumentsMode(!argumentsMode)}
+                    className={cn("h-7 px-3 text-xs rounded-md transition-all", argumentsMode ? "bg-purple-500/10 text-purple-400" : "text-gray-400 hover:text-white")}
+                  >
+                     <Zap className="w-3 h-3 mr-1.5" /> Args
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => setAnalysisMode(!analysisMode)}
+                    className={cn("h-7 px-3 text-xs rounded-md transition-all", analysisMode ? "bg-blue-500/10 text-blue-400" : "text-gray-400 hover:text-white")}
+                  >
+                     <Scale className="w-3 h-3 mr-1.5" /> Analysis
+                  </Button>
+               </div>
+
+
+               <div className="h-4 w-px bg-[#27272a]" />
+
+               {/* Language Toggle */}
+               <div className="flex items-center gap-1 bg-[#18181b] p-1 rounded-lg border border-[#27272a]">
+                   <Button 
+                     variant="ghost" 
+                     size="sm" 
+                     onClick={() => setLanguage('en')}
+                     className={cn("h-7 w-7 p-0 text-xs rounded-md transition-all", language === 'en' ? "bg-white/10 text-white font-bold" : "text-gray-500 hover:text-white")}
+                   >
+                      EN
+                   </Button>
+                   <Button 
+                     variant="ghost" 
+                     size="sm" 
+                     onClick={() => setLanguage('hi')}
+                     className={cn("h-7 w-7 p-0 text-xs rounded-md transition-all", language === 'hi' ? "bg-white/10 text-white font-bold" : "text-gray-500 hover:text-white")}
+                   >
+                      HI
+                   </Button>
+               </div>
+               
+               <div className="h-4 w-px bg-[#27272a]" />
+
+               <Button 
+                   variant="ghost" 
+                   size="sm"
+                   onClick={exportFullChat}
+                   disabled={messages.length === 0}
+                   className="text-gray-400 hover:text-white"
+                   title="Export Full Chat to PDF"
+                >
+                   <Download className="w-4 h-4" />
+                </Button>
+
+                <div className="h-4 w-px bg-[#27272a]" />
+
+               <Select value={domain} onValueChange={setDomain}>
+                   <SelectTrigger className="w-[130px] h-8 bg-transparent border-none text-xs text-gray-300 focus:ring-0">
+                       <SelectValue placeholder="Domain" />
+                   </SelectTrigger>
+                   <SelectContent className="bg-[#18181b] border-[#27272a] text-gray-300">
+                       <SelectItem value="all">All Domains</SelectItem>
+                       <SelectItem value="criminal">Criminal Law</SelectItem>
+                       <SelectItem value="corporate">Corporate Law</SelectItem>
+                   </SelectContent>
+               </Select>
+           </div>
+
+           {/* Messages List */}
+           <div className="flex-1 overflow-y-auto p-4 sm:p-6 scroll-smooth">
+              <div className="max-w-3xl mx-auto space-y-6 pb-4">
+                  <AnimatePresence mode="popLayout">
+                      {messages.length === 0 && (
+                          <motion.div 
+                              initial={{ opacity: 0, scale: 0.95 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              className="min-h-[60vh] flex flex-col items-center justify-center text-center px-4"
+                          >
+                              <div className="w-16 h-16 bg-[#18181b] rounded-2xl flex items-center justify-center mb-6 border border-[#27272a] shadow-xl">
+                                  <Sparkles className="w-8 h-8 text-purple-500" />
+                              </div>
+                              <h2 className="text-xl font-medium text-white mb-2">LegalAi</h2>
+                              <p className="text-gray-500 max-w-sm mb-8 text-sm leading-relaxed">
+                                  Your advanced legal research assistant. Ask about IPC, BNS, or analyze specific cases.
+                              </p>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-xl">
+                                  {QUICK_PROMPTS.map((prompt, idx) => (
+                                      <button 
+                                          key={idx}
+                                          onClick={() => handleSend(prompt.query)}
+                                          className="text-left p-3 rounded-lg bg-[#18181b] border border-[#27272a] hover:bg-[#27272a] hover:border-gray-600 transition-all group"
+                                      >
+                                          <span className="text-sm text-gray-300 group-hover:text-white transition-colors">
+                                              {prompt.text}
+                                          </span>
+                                      </button>
+                                  ))}
+                              </div>
+                          </motion.div>
+                      )}
+
+                      {messages.map((msg, idx) => (
+                          <motion.div 
+                              key={idx}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              className={cn("flex w-full gap-4", msg.role === 'user' ? "justify-end" : "justify-start")}
+                          >
+                              {msg.role === 'assistant' && (
+                                <div className="w-8 h-8 rounded-full bg-purple-600/20 flex items-center justify-center shrink-0 border border-purple-500/20 mt-1">
+                                  <Scale className="w-4 h-4 text-purple-400" />
                                 </div>
-                                <h2 className="text-2xl font-semibold text-white mb-2">How can I help you today?</h2>
-                                <p className="text-gray-400 max-w-md mb-8">
-                                    Ask about Indian Penal Code, BNS comparisons, or get legal arguments for specific cases.
-                                </p>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-2xl">
-                                    {QUICK_PROMPTS.map((prompt, idx) => (
-                                        <button 
-                                            key={idx}
-                                            onClick={() => handleSend(prompt.query)}
-                                            className="text-left p-4 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-purple-500/30 transition-all group"
-                                        >
-                                            <span className="text-sm font-medium text-gray-300 group-hover:text-purple-300 transition-colors">
-                                                {prompt.text}
-                                            </span>
-                                        </button>
-                                    ))}
-                                </div>
-                            </motion.div>
-                        )}
-
-                        {messages.map((msg, idx) => (
-                            <motion.div 
-                                key={idx}
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className={cn("flex w-full", msg.role === 'user' ? "justify-end" : "justify-start")}
-                            >
-                                <div className={cn(
-                                    "max-w-[85%] rounded-2xl p-5 shadow-lg relative overflow-hidden",
-                                    msg.role === 'user' 
-                                        ? "bg-gradient-to-br from-purple-600 to-indigo-600 text-white rounded-br-none" 
-                                        : "bg-white/5 border border-white/10 rounded-bl-none backdrop-blur-md"
-                                )}>
-                                    {/* Noise Texture Overlay */}
-                                    <div className="absolute inset-0 opacity-[0.03] bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
-                                    
-                                    <div className="relative z-10">
-                                        {msg.role === 'assistant' ? (
-                                            <div className="prose prose-invert prose-sm max-w-none">
-                                                <ReactMarkdown>{msg.content}</ReactMarkdown>
-                                                
-                                                {/* Analysis Cards */}
-                                                {(msg.neutral_analysis || msg.arguments || (msg.judgments && msg.judgments.length > 0)) && (
-                                                   <div className="mt-6 flex flex-col gap-4">
-                                                      {msg.neutral_analysis && (
-                                                          <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4">
-                                                              <h4 className="flex items-center gap-2 text-blue-300 font-semibold mb-3 text-xs uppercase tracking-wider">
-                                                                  <Scale className="w-4 h-4" /> Neutral Analysis
-                                                              </h4>
-                                                              <div className="grid md:grid-cols-2 gap-4">
-                                                                 <ul className="text-xs text-blue-100/70 list-disc list-inside space-y-1">
-                                                                     {msg.neutral_analysis.factors.map((f, i) => <li key={i}>{f}</li>)}
-                                                                 </ul>
-                                                                 <ul className="text-xs text-blue-100/70 list-disc list-inside space-y-1">
-                                                                     {msg.neutral_analysis.interpretations.map((f, i) => <li key={i}>{f}</li>)}
-                                                                 </ul>
-                                                              </div>
-                                                          </div>
-                                                      )}
-                                                      
-                                                      {msg.arguments && (
-                                                          <div className="grid md:grid-cols-2 gap-3">
-                                                              <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-4">
-                                                                  <h4 className="text-green-300 font-semibold mb-2 text-xs uppercase">Arguments For</h4>
-                                                                  <ul className="text-xs text-green-100/70 list-disc list-inside space-y-1">
-                                                                      {msg.arguments.for.map((f, i) => <li key={i}>{f}</li>)}
-                                                                  </ul>
-                                                              </div>
-                                                              <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4">
-                                                                  <h4 className="text-red-300 font-semibold mb-2 text-xs uppercase">Arguments Against</h4>
-                                                                  <ul className="text-xs text-red-100/70 list-disc list-inside space-y-1">
-                                                                      {msg.arguments.against.map((f, i) => <li key={i}>{f}</li>)}
-                                                                  </ul>
-                                                              </div>
-                                                          </div>
-                                                      )}
-                                                   </div>
+                              )}
+                              
+                              <div className={cn(
+                                  "max-w-[85%] sm:max-w-[75%] rounded-2xl px-5 py-3.5 text-sm leading-relaxed",
+                                  msg.role === 'user' 
+                                      ? "bg-[#27272a] text-white rounded-br-none" 
+                                      : "bg-transparent text-gray-200 pl-0 pt-1" // Minimal assistant look
+                              )}>
+                                  {msg.role === 'assistant' ? (
+                                      <div className="prose prose-invert prose-sm max-w-none prose-p:leading-relaxed prose-pre:bg-[#18181b] prose-pre:border prose-pre:border-[#27272a]">
+                                          <ReactMarkdown>{msg.content}</ReactMarkdown>
+                                          
+                                          {/* Analysis Cards */}
+                                          {(msg.neutral_analysis || msg.arguments || (msg.judgments && msg.judgments.length > 0)) && (
+                                             <div className="mt-6 flex flex-col gap-4 not-prose">
+                                                {msg.neutral_analysis && (
+                                                    <div className="bg-blue-900/10 border border-blue-800/20 rounded-lg p-4">
+                                                        <h4 className="flex items-center gap-2 text-blue-400 font-medium mb-3 text-xs uppercase tracking-wider">
+                                                            Neutral Analysis
+                                                        </h4>
+                                                        <div className="grid md:grid-cols-2 gap-4">
+                                                           <ul className="text-xs text-blue-200/70 list-disc list-inside space-y-1">
+                                                               {msg.neutral_analysis.factors.map((f, i) => <li key={i}>{f}</li>)}
+                                                           </ul>
+                                                           <ul className="text-xs text-blue-200/70 list-disc list-inside space-y-1">
+                                                               {msg.neutral_analysis.interpretations.map((f, i) => <li key={i}>{f}</li>)}
+                                                           </ul>
+                                                        </div>
+                                                    </div>
                                                 )}
                                                 
-                                                 <div className="mt-4 flex gap-2 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <Button variant="ghost" size="sm" className="h-6 text-[10px] text-gray-400 hover:text-white" onClick={() => exportPDF(msg, "Legal Query")}>
-                                                        <Download className="h-3 w-3 mr-1" /> Save PDF
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <p className="font-medium text-sm">{msg.content}</p>
-                                        )}
-                                    </div>
-                                </div>
-                            </motion.div>
-                        ))}
-                        
-                        {isLoading && (
-                            <motion.div 
-                                initial={{ opacity: 0 }} 
-                                animate={{ opacity: 1 }}
-                                className="flex items-center gap-3 text-gray-400 pl-4"
-                            >
-                                <Loader2 className="h-4 w-4 animate-spin text-purple-400" />
-                                <span className="text-xs font-mono animate-pulse">{loadingText}</span>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-                    <div ref={scrollRef} />
-                </div>
-            </ScrollArea>
+                                                {msg.arguments && (
+                                                    <div className="grid md:grid-cols-2 gap-3">
+                                                        <div className="bg-emerald-900/10 border border-emerald-800/20 rounded-lg p-3">
+                                                            <h4 className="text-emerald-400 font-medium mb-2 text-xs uppercase">Arguments For</h4>
+                                                            <ul className="text-xs text-emerald-200/70 list-disc list-inside space-y-1">
+                                                                {msg.arguments.for.map((f, i) => <li key={i}>{f}</li>)}
+                                                            </ul>
+                                                        </div>
+                                                        <div className="bg-red-900/10 border border-red-800/20 rounded-lg p-3">
+                                                            <h4 className="text-red-400 font-medium mb-2 text-xs uppercase">Arguments Against</h4>
+                                                            <ul className="text-xs text-red-200/70 list-disc list-inside space-y-1">
+                                                                {msg.arguments.against.map((f, i) => <li key={i}>{f}</li>)}
+                                                            </ul>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                             </div>
+                                          )}
+                                          
+                                          {msg.citations && msg.citations.length > 0 && (
+                                              <div className="mt-4 not-prose bg-[#18181b] border border-[#27272a] rounded-xl overflow-hidden">
+                                                  <div className="px-4 py-2 bg-[#1f1f23] border-b border-[#27272a] flex items-center justify-between">
+                                                      <h4 className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                                                          <BookOpen className="w-3 h-3" /> Verifiable Sources
+                                                      </h4>
+                                                  </div>
+                                                  <div className="p-1">
+                                                      {msg.citations.map((cite, i) => (
+                                                          <a 
+                                                              key={i} 
+                                                              href={getKanoonLink(cite.source, cite.section)}
+                                                              target="_blank"
+                                                              rel="noopener noreferrer"
+                                                              className="flex items-center justify-between px-3 py-2 hover:bg-[#27272a] rounded-lg group transition-colors text-xs"
+                                                          >
+                                                              <div className="flex flex-col">
+                                                                  <span className="font-medium text-purple-400 group-hover:text-purple-300 transition-colors">
+                                                                       {cite.section}
+                                                                  </span>
+                                                                  <span className="text-[10px] text-gray-500">{cite.source}</span>
+                                                              </div>
+                                                              <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                  <ExternalLink className="w-3 h-3 text-gray-400 hover:text-white" />
+                                                              </div>
+                                                          </a>
+                                                      ))}
+                                                  </div>
+                                              </div>
+                                          )}
+                                           
+                                           <div className="mt-4 flex gap-2 justify-start opacity-70 hover:opacity-100 transition-opacity">
+                                              <Button variant="ghost" size="sm" className="h-6 text-[10px] text-gray-500 hover:text-gray-300 px-2" onClick={() => exportPDF(msg, "Legal Query")}>
+                                                  <Download className="h-3 w-3 mr-1.5" /> Save PDF
+                                              </Button>
+                                          </div>
+                                      </div>
+                                  ) : (
+                                      <p>{msg.content}</p>
+                                  )}
+                              </div>
+                          </motion.div>
+                      ))}
+                      
+                      {isLoading && (
+                          <motion.div 
+                              initial={{ opacity: 0 }} 
+                              animate={{ opacity: 1 }}
+                              className="flex items-center gap-4 pl-0"
+                          >
+                               <div className="w-8 h-8 rounded-full bg-purple-600/20 flex items-center justify-center shrink-0 border border-purple-500/20">
+                                  <Loader2 className="h-4 w-4 animate-spin text-purple-400" />
+                               </div>
+                              <span className="text-xs font-mono text-gray-500 animate-pulse">{loadingText}</span>
+                          </motion.div>
+                      )}
+                  </AnimatePresence>
+                  <div ref={scrollRef} />
+              </div>
+           </div>
 
-            {/* Input Area */}
-            <div className="pb-6 pt-2">
-                <div className="relative flex items-center gap-2 bg-white/5 border border-white/10 rounded-full p-1.5 backdrop-blur-xl shadow-2xl">
-                    <Button 
-                        variant={isListening ? "destructive" : "ghost"} 
-                        size="icon" 
-                        onClick={startListening}
-                        className={cn("rounded-full h-10 w-10 shrink-0", isListening ? "" : "text-gray-400 hover:text-white hover:bg-white/10")}
-                    >
-                        {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-                    </Button>
-                    
-                    <Input 
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                        placeholder={isListening ? "Listening..." : "Ask your legal question..."}
-                        className="border-0 bg-transparent focus-visible:ring-0 text-white placeholder:text-gray-500 h-10"
-                    />
-                    
-                    <Button 
-                        size="icon" 
-                        onClick={() => handleSend()}
-                        className="rounded-full bg-purple-600 hover:bg-purple-500 text-white h-10 w-10 shrink-0 shadow-[0_0_15px_rgba(147,51,234,0.3)]"
-                    >
-                        <Send className="h-4 w-4" />
-                    </Button>
-                </div>
-                <div className="mt-3 text-[10px] text-center text-gray-600">
-                    AI can make mistakes. Please verify important information.
-                </div>
-            </div>
+           {/* Input Area */}
+           <div className="w-full max-w-3xl mx-auto px-4 pb-6 pt-2">
+               <div className="relative flex items-center gap-2 bg-[#18181b] border border-[#27272a] rounded-xl p-2 shadow-lg focus-within:ring-1 focus-within:ring-purple-500/30 transition-all">
+                   <Button 
+                       variant={isListening ? "destructive" : "ghost"} 
+                       size="icon" 
+                       onClick={startListening}
+                       className={cn("rounded-lg h-9 w-9 shrink-0", isListening ? "" : "text-gray-400 hover:text-white hover:bg-[#27272a]")}
+                   >
+                       {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                   </Button>
+                   
+                   <Input 
+                       value={input}
+                       onChange={(e) => setInput(e.target.value)}
+                       onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                       placeholder={isListening ? "Listening..." : "Ask your legal question..."}
+                       className="border-0 bg-transparent focus-visible:ring-0 text-white placeholder:text-gray-500 h-9 px-2 shadow-none"
+                   />
+                   
+                   <Button 
+                       size="icon" 
+                       onClick={() => handleSend()}
+                       disabled={!input.trim()}
+                       className={cn(
+                           "rounded-lg h-9 w-9 shrink-0 transition-all",
+                           input.trim() ? "bg-purple-600 hover:bg-purple-500 text-white" : "bg-[#27272a] text-gray-500 cursor-not-allowed"
+                       )}
+                   >
+                       <Send className="h-4 w-4" />
+                   </Button>
+               </div>
+               <div className="mt-2 text-[10px] text-center text-gray-600">
+                   AI can make mistakes. Please verify important information.
+               </div>
+           </div>
 
-         </div>
-      </main>
+        </main>
+      </div>
+
     </div>
   );
 };

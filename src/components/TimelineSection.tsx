@@ -60,7 +60,7 @@ export default function TimelineSection() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
              <div>
                <p className="text-[#f8f8f8] text-sm md:text-base font-normal mb-6 leading-relaxed">
-                 Legal Compass AI is an AI-powered legal research assistant built to simplify Indian criminal law through structured retrieval, comparison, and verification.
+                 LegalAi is an AI-powered legal research assistant built to simplify Indian criminal law through structured retrieval, comparison, and verification.
                </p>
                <div className="flex flex-col gap-4">
                  <div className="flex gap-3 items-start text-[#f8f8f8]/90">
@@ -120,7 +120,7 @@ export default function TimelineSection() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
             <div>
               <p className="text-[#f8f8f8] text-sm md:text-base font-normal mb-6 leading-relaxed">
-                Legal Compass AI v1.0 demonstrates how AI can responsibly improve legal understanding during India’s transition to new criminal laws.
+                LegalAi v1.0 demonstrates how AI can responsibly improve legal understanding during India’s transition to new criminal laws.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                   <div className="p-3 rounded-lg bg-[#f8f8f8]/5 border border-[#f8f8f8]/10">
@@ -162,7 +162,7 @@ export default function TimelineSection() {
     <div className="w-full bg-[#09090B]">
       <Timeline 
         data={data} 
-        title="Why Legal Compass?"
+        title="Why LegalAi?"
         description="Bridging the gap between ancient statutes and modern technology."
       />
     </div>

@@ -17,7 +17,7 @@ const Index = () => {
       
       {/* Footer */}
       <footer className="py-12 text-center text-[#f8f8f8]/50 text-sm border-t border-[#f8f8f8]/10 bg-[#09090B]">
-        <p>&copy; 2025 Legal Compass AI. Built for the Future of Indian Law.</p>
+        <p>&copy; 2025 LegalAi. Built for the Future of Indian Law.</p>
       </footer>
     </div>
   );
