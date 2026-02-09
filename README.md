@@ -12,7 +12,7 @@
 [![Vite](https://img.shields.io/badge/Vite-5.4-646CFF?logo=vite)](https://vitejs.dev/)
 [![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.4-38B2AC?logo=tailwind-css)](https://tailwindcss.com/)
 
-[Live Demo](https://legalai.in) · [Documentation](#documentation) · [Report Bug](https://github.com/legalai/legalai-india/issues)
+[View Repository](https://github.com/stewin16/LegalAI) · [Documentation](#documentation) · [Report Bug](https://github.com/stewin16/LegalAI/issues)
 
 </div>
 
@@ -74,8 +74,8 @@
 
 ```bash
 # Clone the repository
-git clone https://github.com/legalai/legalai-india.git
-cd legalai-india
+git clone https://github.com/stewin16/LegalAI.git
+cd LegalAI
 
 # Install frontend dependencies
 npm install
@@ -139,7 +139,7 @@ npm run preview
 
 ### Deploy to Vercel
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/legalai/legalai-india)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/stewin16/LegalAI)
 
 ```bash
 # Install Vercel CLI
@@ -180,7 +180,7 @@ CMD ["nginx", "-g", "daemon off;"]
 ## 📁 Project Structure
 
 ```
-legalai-india/
+LegalAI/
 ├── public/              # Static assets
 ├── src/
 │   ├── components/      # Reusable UI components
@@ -250,9 +250,8 @@ LegalAI is an AI-powered informational tool and does not constitute legal advice
 
 ## 📞 Support
 
-- **Email**: support@legalai.in
-- **Twitter**: [@LegalAI_India](https://twitter.com/LegalAI_India)
-- **Issues**: [GitHub Issues](https://github.com/legalai/legalai-india/issues)
+- **GitHub**: [stewin16/LegalAI](https://github.com/stewin16/LegalAI)
+- **Issues**: [GitHub Issues](https://github.com/stewin16/LegalAI/issues)
 
 ---
 
