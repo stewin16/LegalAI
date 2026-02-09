@@ -1,0 +1,11 @@
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default DraftingPage;

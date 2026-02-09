@@ -63,6 +63,18 @@ export default {
           ring: "hsl(var(--sidebar-ring))",
         },
         "section-alt": "hsl(var(--section-alt))",
+        saffron: {
+          DEFAULT: "#FF9933",
+          light: "#FFF0E0",
+        },
+        "green-india": {
+          DEFAULT: "#138808",
+          light: "#E8F5E9",
+        },
+        "navy-india": {
+          DEFAULT: "#000080",
+          light: "#E6E6FA",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",

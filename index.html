@@ -3,22 +3,96 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- TODO: Set the document title to the name of your application -->
-    <title>LegalAi</title>
-    <meta name="description" content="AI Powered Legal Assistant for Indian Law" />
-    <meta name="author" content="LegalAi Team" />
-
-    <meta property="og:title" content="LegalAi" />
-    <meta property="og:description" content="AI Powered Legal Assistant for Indian Law" />
+    
+    <!-- Primary Meta Tags -->
+    <title>LegalAI - AI-Powered Legal Assistant for Indian Law</title>
+    <meta name="title" content="LegalAI - AI-Powered Legal Assistant for Indian Law" />
+    <meta name="description" content="Access 20+ AI-powered legal tools for Indian law. Get instant answers, draft documents, analyze contracts, find lawyers, and navigate the legal system with confidence. Free legal AI assistant supporting IPC, BNS, and more." />
+    <meta name="author" content="LegalAI Team" />
+    <meta name="keywords" content="legal AI, Indian law, IPC, BNS, legal assistant, law AI, legal document drafter, case predictor, bail checker, RTI application, FIR generator, lawyer finder, legal consultation India" />
+    <meta name="robots" content="index, follow" />
+    <meta name="language" content="English" />
+    <meta name="revisit-after" content="7 days" />
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/jpeg" href="/logo.jpg" />
+    <link rel="apple-touch-icon" href="/logo.jpg" />
+    
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#000080" />
+    <meta name="msapplication-navbutton-color" content="#000080" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="#000080" />
+    
+    <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
-    <!-- <meta property="og:image" content="/og-image.png" /> -->
+    <meta property="og:url" content="https://legalai.in/" />
+    <meta property="og:title" content="LegalAI - AI-Powered Legal Assistant for Indian Law" />
+    <meta property="og:description" content="Access 20+ AI-powered legal tools for Indian law. Get instant answers, draft documents, analyze contracts, and navigate the legal system with confidence." />
+    <meta property="og:image" content="/demo-screenshot.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:site_name" content="LegalAI" />
+    <meta property="og:locale" content="en_IN" />
 
+    <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@LegalAi" />
-    <!-- <meta name="twitter:image" content="/og-image.png" /> -->
+    <meta name="twitter:url" content="https://legalai.in/" />
+    <meta name="twitter:title" content="LegalAI - AI-Powered Legal Assistant for Indian Law" />
+    <meta name="twitter:description" content="Access 20+ AI-powered legal tools for Indian law. Get instant answers, draft documents, analyze contracts, and navigate the legal system with confidence." />
+    <meta name="twitter:image" content="/demo-screenshot.png" />
+    <meta name="twitter:site" content="@LegalAI_India" />
+    <meta name="twitter:creator" content="@LegalAI_India" />
+    
+    <!-- Structured Data for SEO -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "LegalAI",
+      "description": "AI-Powered Legal Assistant for Indian Law",
+      "url": "https://legalai.in",
+      "applicationCategory": "LegalService",
+      "operatingSystem": "Any",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "INR"
+      },
+      "creator": {
+        "@type": "Organization",
+        "name": "LegalAI Team",
+        "url": "https://legalai.in"
+      },
+      "featureList": [
+        "AI Legal Chat Assistant",
+        "Document Drafter",
+        "Document Summarizer",
+        "IPC vs BNS Comparison",
+        "Case Outcome Predictor",
+        "Legal Risk Analyzer",
+        "Lawyer Finder",
+        "Bail Eligibility Checker",
+        "FIR Generator",
+        "RTI Application Generator"
+      ]
+    }
+    </script>
+    
+    <!-- Preconnect to external resources -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="dns-prefetch" href="https://overpass-api.de" />
   </head>
 
   <body>
+    <!-- Noscript fallback -->
+    <noscript>
+      <div style="padding: 20px; text-align: center; font-family: sans-serif;">
+        <h1>LegalAI - AI-Powered Legal Assistant</h1>
+        <p>JavaScript is required to run this application. Please enable JavaScript in your browser settings.</p>
+      </div>
+    </noscript>
+    
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

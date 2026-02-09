@@ -1,64 +1,34 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Scale } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
-const AnimatedNavLink = ({ href, children, isActive }: { href: string; children: React.ReactNode; isActive?: boolean }) => {
-  const defaultTextColor = isActive ? 'text-white font-medium' : 'text-gray-400';
-  const hoverTextColor = 'text-white';
-  const textSizeClass = 'text-sm';
-
+const NavLink = ({ href, children, isActive }: { href: string; children: React.ReactNode; isActive?: boolean }) => {
   return (
-    <Link to={href} className={`group relative block overflow-hidden h-5 ${textSizeClass}`}>
-      <div className="flex flex-col transition-transform duration-300 ease-out transform group-hover:-translate-y-1/2">
-        <span className={`block h-5 leading-5 ${defaultTextColor}`}>{children}</span>
-        <span className={`block h-5 leading-5 ${hoverTextColor}`}>{children}</span>
-      </div>
+    <Link
+      to={href}
+      className={cn(
+        "px-4 py-2 text-sm font-medium transition-colors rounded-lg",
+        isActive
+          ? "text-navy-india bg-navy-india/5 font-semibold"
+          : "text-gray-600 hover:text-navy-india hover:bg-gray-50"
+      )}
+    >
+      {children}
     </Link>
   );
 };
 
-export function Navbar({ autoHide = false }: { autoHide?: boolean }) {
+export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
-  const [headerShapeClass, setHeaderShapeClass] = useState('rounded-full');
-  const [isHovered, setIsHovered] = useState(false);
-  const shapeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const location = useLocation();
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
   };
-
-  useEffect(() => {
-    if (shapeTimeoutRef.current) {
-      clearTimeout(shapeTimeoutRef.current);
-    }
-
-    if (isOpen) {
-      setHeaderShapeClass('rounded-xl');
-    } else {
-      shapeTimeoutRef.current = setTimeout(() => {
-        setHeaderShapeClass('rounded-full');
-      }, 300);
-    }
-
-    return () => {
-      if (shapeTimeoutRef.current) {
-        clearTimeout(shapeTimeoutRef.current);
-      }
-    };
-  }, [isOpen]);
-
-  const logoElement = (
-    <Link to="/" className="relative flex items-center justify-center gap-2 group">
-        <div className="w-9 h-9 rounded-full overflow-hidden border border-white/20 shadow-lg group-hover:shadow-purple-500/50 transition-all">
-             <img src="/logo.jpg" alt="LegalAi Logo" className="w-full h-full object-cover" />
-        </div>
-        <span className="font-serif font-bold text-white hidden sm:block text-xl tracking-tight">LegalAi</span>
-    </Link>
-  );
 
   const navLinksData = [
     { label: 'Home', href: '/' },
@@ -66,82 +36,68 @@ export function Navbar({ autoHide = false }: { autoHide?: boolean }) {
     { label: 'Draft', href: '/draft' },
     { label: 'Compare', href: '/compare' },
     { label: 'Summarizer', href: '/summarize' },
+    { label: 'Find Lawyer', href: '/tools/lawyer-finder' },
+    { label: 'AI Tools', href: '/features' },
   ];
 
-  const sidebarVisible = autoHide ? (isHovered || isOpen) : true;
-
   return (
-    <>
-      {/* Trigger Zone for Auto-Hide - Centered Area Only */}
-      {autoHide && (
-        <div 
-            className="fixed top-0 left-1/2 -translate-x-1/2 w-[60%] sm:w-[500px] h-6 z-50 bg-transparent"
-            onMouseEnter={() => setIsHovered(true)}
-        />
-      )}
+    <header className="sticky top-0 z-50 w-full bg-white/90 backdrop-blur-md shadow-sm">
+      <div className="container mx-auto px-4 h-16 flex items-center justify-between">
 
-      <header 
-         onMouseEnter={() => autoHide && setIsHovered(true)}
-         onMouseLeave={() => autoHide && setIsHovered(false)}
-         className={`fixed top-6 left-1/2 transform -translate-x-1/2 z-50
-                       flex flex-col items-center
-                       pl-4 pr-4 py-3 backdrop-blur-md
-                       ${headerShapeClass}
-                       border border-white/10 bg-black/50
-                       w-[calc(100%-2rem)] sm:w-auto min-w-[320px] sm:min-w-[800px]
-                       transition-all duration-300 ease-in-out shadow-2xl
-                       ${autoHide && !sidebarVisible ? '-translate-y-[150%] opacity-0 pointer-events-none' : 'translate-y-0 opacity-100 pointer-events-auto'}
-                       `}
-      >
+        {/* Logo */}
+        <Link to="/" className="flex items-center gap-2 group">
+          <div className="w-8 h-8 rounded-lg overflow-hidden border border-gray-200 group-hover:border-saffron/50 transition-colors">
+            <img src="/logo.jpg" alt="LegalAi" className="w-full h-full object-cover" />
+          </div>
+          <span className="font-serif font-bold text-navy-india text-xl tracking-tight group-hover:text-saffron transition-colors">
+            LegalAi
+          </span>
+        </Link>
 
-      <div className="flex items-center justify-between w-full gap-x-6 sm:gap-x-8">
-        <div className="flex items-center">
-           {logoElement}
-        </div>
-
-        <nav className="hidden sm:flex items-center space-x-4 sm:space-x-6 text-sm">
+        {/* Desktop Navigation */}
+        <nav className="hidden lg:flex items-center gap-1">
           {navLinksData.map((link) => (
-            <AnimatedNavLink key={link.href} href={link.href} isActive={location.pathname === link.href}>
+            <NavLink key={link.href} href={link.href} isActive={location.pathname === link.href}>
               {link.label}
-            </AnimatedNavLink>
+            </NavLink>
           ))}
         </nav>
 
-        <div className="hidden sm:flex items-center gap-2 sm:gap-3">
-           <Link to="/chat">
-               <button className="px-5 py-2 text-xs font-medium text-black bg-white rounded-full hover:bg-gray-200 transition-colors duration-200 shadow-[0_0_10px_rgba(255,255,255,0.2)]">
-                  Launch App
-               </button>
-           </Link>
-        </div>
-
-        <button className="sm:hidden flex items-center justify-center w-8 h-8 text-gray-300 focus:outline-none" onClick={toggleMenu} aria-label={isOpen ? 'Close Menu' : 'Open Menu'}>
-          {isOpen ? (
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-          ) : (
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
-          )}
+        {/* Mobile Menu Toggle */}
+        <button
+          className="lg:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-md"
+          onClick={toggleMenu}
+        >
+          {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
       </div>
 
-      <div className={`sm:hidden flex flex-col items-center w-full transition-all ease-in-out duration-300 overflow-hidden
-                       ${isOpen ? 'max-h-[1000px] opacity-100 pt-4' : 'max-h-0 opacity-0 pt-0 pointer-events-none'}`}>
-        <nav className="flex flex-col items-center space-y-4 text-base w-full">
-          {navLinksData.map((link) => (
-            <Link key={link.href} to={link.href} className="text-gray-300 hover:text-white transition-colors w-full text-center py-2" onClick={() => setIsOpen(false)}>
-              {link.label}
-            </Link>
-          ))}
-        </nav>
-        <div className="flex flex-col items-center space-y-4 mt-4 w-full pb-2">
-           <Link to="/chat" className="w-full">
-               <button className="w-full px-4 py-2 text-sm font-semibold text-black bg-white rounded-full hover:bg-gray-200 transition-colors">
-                  Launch App
-               </button>
-           </Link>
+      {/* Tricolor Line Separator */}
+      <div className="h-1 bg-gradient-to-r from-saffron via-white to-green-india w-full" />
+
+      {/* Mobile Menu */}
+      {isOpen && (
+        <div className="lg:hidden border-t border-gray-100 bg-white absolute w-full left-0 top-[68px] shadow-xl animate-in slide-in-from-top-2">
+          <nav className="flex flex-col p-4 space-y-2">
+            {navLinksData.map((link) => (
+              <Link
+                key={link.href}
+                to={link.href}
+                className={cn(
+                  "px-4 py-3 text-sm font-medium rounded-lg transition-colors flex items-center justify-between",
+                  location.pathname === link.href
+                    ? "text-navy-india bg-navy-india/5"
+                    : "text-gray-600 hover:bg-gray-50"
+                )}
+                onClick={() => setIsOpen(false)}
+              >
+                {link.label}
+                {location.pathname === link.href && <div className="w-1.5 h-1.5 rounded-full bg-navy-india" />}
+              </Link>
+            ))}
+          </nav>
         </div>
-      </div>
+      )}
     </header>
-    </>
   );
 }
