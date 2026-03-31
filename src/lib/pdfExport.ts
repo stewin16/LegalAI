@@ -47,14 +47,16 @@ const safeFileName = (value: string) =>
     })
     .join("")
     .replace(/\s+/g, "_");
-export const exportStructuredPdf = async ({
-  title,
-  fileName,
-  metadata = [],
-  sections,
-  footer,
-}: ExportStructuredPdfOptions) => {
-  // 1. Prepare Filenaming
+
+// Helper for page overflow check
+const checkYOverflow = (y: number, padding: number): boolean => {
+  return y + padding > 800; // A4 height is ~841pt
+};
+
+export const exportStructuredPdf = async (options: ExportStructuredPdfOptions) => {
+  const { title, fileName, metadata = [], sections, footer } = options;
+  
+  // Prepare Filenaming
   const cleanName = fileName.toLowerCase().endsWith(".pdf") ? fileName : `${fileName}.pdf`;
   const secureFileName = safeFileName(cleanName);
 
@@ -68,29 +70,27 @@ export const exportStructuredPdf = async ({
 
     let currentY = 50;
     const margin = 45;
-    const pageWidth = 515; // ~595 - (2*40)
+    const pageWidth = 505; // ~595 - (2*45)
 
-    // Header Branding (Draw manually)
-    // Saffron Top Border
+    // Header Branding
     doc.setDrawColor(255, 153, 51); // Saffron
     doc.setLineWidth(2);
     doc.line(margin, currentY, margin + pageWidth, currentY);
     currentY += 15;
 
-    // Logo Placeholder or Text (since we cannot easily base64 in this context)
-    doc.setTextColor(0, 0, 128); // Navy India
+    doc.setTextColor(0, 0, 128); // Navy
     doc.setFont("helvetica", "bold");
     doc.setFontSize(14);
     doc.text("LEGALAI INDIA", margin, currentY);
     
-    doc.setTextColor(153, 153, 153); // Gray
+    doc.setTextColor(153, 153, 153);
     doc.setFontSize(8);
     doc.text("OFFICIAL REPORT • " + new Date().toLocaleDateString(), margin + pageWidth, currentY, { align: "right" });
     
     currentY += 25;
 
     // Title
-    doc.setTextColor(0, 0, 128); // Navy India
+    doc.setTextColor(0, 0, 128);
     doc.setFontSize(22);
     const titleLines = doc.splitTextToSize(toPlainText(title), pageWidth);
     doc.text(titleLines, margin, currentY);
@@ -108,7 +108,7 @@ export const exportStructuredPdf = async ({
       doc.setFont("helvetica", "normal");
       
       metadata.forEach(m => {
-        if (yOverflow(currentY, 12)) { doc.addPage(); currentY = 40; }
+        if (checkYOverflow(currentY, 12)) { doc.addPage(); currentY = 40; }
         doc.text(toPlainText(m), margin, currentY);
         currentY += 12;
       });
@@ -117,9 +117,8 @@ export const exportStructuredPdf = async ({
 
     // Sections
     sections.forEach(s => {
-      // Label
       if (s.label) {
-        if (yOverflow(currentY, 20)) { doc.addPage(); currentY = margin; }
+        if (checkYOverflow(currentY, 20)) { doc.addPage(); currentY = 45; }
         doc.setTextColor(34, 34, 34);
         doc.setFont("helvetica", "bold");
         doc.setFontSize(11);
@@ -127,17 +126,14 @@ export const exportStructuredPdf = async ({
         currentY += 15;
       }
 
-      // Text
       doc.setTextColor(85, 85, 85);
       doc.setFont("helvetica", "normal");
       doc.setFontSize(10.5);
       const textLines = doc.splitTextToSize(toPlainText(s.text), pageWidth);
       
       textLines.forEach((line: string) => {
-        if (yOverflow(currentY, 14)) { 
+        if (checkYOverflow(currentY, 14)) { 
           doc.addPage(); 
-          currentY = margin; 
-          // Re-draw top line on new page for branding
           doc.setDrawColor(255, 153, 51);
           doc.line(margin, 30, margin + pageWidth, 30);
           currentY = 45;
@@ -150,7 +146,7 @@ export const exportStructuredPdf = async ({
 
     // Footer
     if (footer) {
-      if (yOverflow(currentY, 40)) { doc.addPage(); currentY = 40; }
+      if (checkYOverflow(currentY, 40)) { doc.addPage(); currentY = 45; }
       doc.setDrawColor(238, 238, 238);
       doc.line(margin, currentY, margin + pageWidth, currentY);
       currentY += 15;
@@ -159,34 +155,10 @@ export const exportStructuredPdf = async ({
       doc.text(toPlainText(footer), margin, currentY, { maxWidth: pageWidth });
     }
 
-    // Helper for page overflow
-    function yOverflow(y: number, padding: number) {
-      return y + padding > 800; // A4 height is ~841pt
-    }
-
-    // FINAL EXPORT
-    // Try primary save
-    try {
-      doc.save(secureFileName);
-    } catch (saveError) {
-      console.error("Standard save failed, triggering anchor download:", saveError);
-      const blob = doc.output('blob');
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = secureFileName;
-      a.type = 'application/pdf';
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(() => {
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-      }, 1000);
-    }
+    doc.save(secureFileName);
 
   } catch (error) {
     console.error("PDF Engine Crash:", error);
-    // Absolute Last Resort: Text Area Export
-    alert("Generation failed. Please copy the text manually from the screen.");
+    alert("Generation failed. Please try again or copy text manually.");
   }
 };
