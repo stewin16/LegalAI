@@ -13,26 +13,21 @@ type ExportStructuredPdfOptions = {
   footer?: string;
 };
 
-/**
- * Intelligent character mapping for PDF standard fonts (WinAnsiEncoding)
- * This prevents "random shit" or missing characters while keeping the text readable.
- */
 const preparePdfText = (str: string) => {
   if (!str) return "";
   return str
-    .replace(/[“”]/g, '"') // Smart double quotes
-    .replace(/[‘’]/g, "'") // Smart single quotes
-    .replace(/[\u2013\u2014]/g, "-") // Em and En dashes
-    .replace(/₹/g, "Rs.") // Rupee symbol
-    .replace(/[•●■]/g, "-") // Bullets
-    .replace(/\u00A0/g, " ") // Non-breaking space
-    .replace(/[^\x00-\x7F]/g, "") // Final fallback for other Unicode
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/[\u2013\u2014]/g, "-")
+    .replace(/₹/g, "Rs.")
+    .replace(/[•●■]/g, "-")
+    .replace(/\u00A0/g, " ")
+    .replace(/[^\x00-\x7F]/g, "")
     .trim();
 };
 
 export const toPlainText = (value: string) => {
   if (!value) return "";
-  // 1. Strip Markdown
   const plain = value
     .replace(/```[\s\S]*?```/g, (match) => match.replace(/```/g, ""))
     .replace(/`([^`]+)`/g, "$1")
@@ -43,144 +38,140 @@ export const toPlainText = (value: string) => {
     .replace(/\[(.*?)\]\((.*?)\)/g, "$1")
     .replace(/^[-*+]\s+/gm, "- ");
 
-  // 2. Mapping characters
   return preparePdfText(plain);
 };
 
-const safeFileName = (value: string) =>
-  Array.from(value)
-    .map((char) => {
-      const code = char.charCodeAt(0);
-      if (code < 32 || code === 127) return "_";
-      if ('<>:"/\\|?*'.includes(char)) return "_";
-      return char;
-    })
-    .join("")
-    .replace(/\s+/g, "_");
-
-const checkYOverflow = (y: number, padding: number): boolean => {
-  return y + padding > 785;
+const safeFileName = (value: string) => {
+    const name = (value || "report").replace(/\s+/g, "_");
+    const clean = name.replace(/[<>:"/\\|?*]/g, "_");
+    return clean.endsWith(".pdf") ? clean : `${clean}.pdf`;
 };
+
+const PAGE_HEIGHT = 842; // A4 in points
+const MARGIN = 45;
+const PAGE_WIDTH = 505;
+const OVERFLOW_LIMIT = 780;
 
 export const exportStructuredPdf = async (options: ExportStructuredPdfOptions) => {
   const { title, fileName, metadata = [], sections, footer } = options;
-  
-  const cleanName = fileName.toLowerCase().endsWith(".pdf") ? fileName : `${fileName}.pdf`;
-  const secureFileName = safeFileName(cleanName);
+  const secureFileName = safeFileName(fileName);
 
   try {
     const doc = new jsPDF({
       orientation: "p",
       unit: "pt",
-      format: "a4",
-      compress: true
+      format: "a4"
     });
 
     let currentY = 50;
-    const margin = 45;
-    const pageWidth = 505;
 
-    // Header Color Bar
+    // BRANDING HEADER
     doc.setDrawColor(255, 153, 51);
-    doc.setLineWidth(3);
-    doc.line(margin, currentY, margin + pageWidth, currentY);
-    currentY += 20;
+    doc.setLineWidth(2.5);
+    doc.line(MARGIN, currentY, MARGIN + PAGE_WIDTH, currentY);
+    currentY += 15;
 
-    // Header Branding
     doc.setTextColor(0, 0, 128);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(15);
-    doc.text("LEGALAI INDIA", margin, currentY);
+    doc.setFontSize(14);
+    doc.text("LEGALAI INDIA", MARGIN, currentY);
     
     doc.setTextColor(150, 150, 150);
     doc.setFontSize(8);
-    doc.text("ISSUED ON: " + new Date().toLocaleDateString(), margin + pageWidth, currentY, { align: "right" });
+    doc.text("OFFICIAL REPORT • " + new Date().toLocaleDateString(), MARGIN + PAGE_WIDTH, currentY, { align: "right" });
     currentY += 30;
 
-    // Report Title
+    // TITLE
     doc.setTextColor(0, 0, 128);
     doc.setFontSize(22);
-    const titleLines = doc.splitTextToSize(toPlainText(title), pageWidth);
-    titleLines.forEach((line: string) => {
-      if (checkYOverflow(currentY, 26)) { doc.addPage(); currentY = 50; }
-      doc.text(line, margin, currentY);
+    const titleLines = doc.splitTextToSize(toPlainText(title), PAGE_WIDTH);
+    titleLines.forEach((l: string) => {
+      if (currentY > OVERFLOW_LIMIT) { doc.addPage(); currentY = 50; }
+      doc.text(l, MARGIN, currentY);
       currentY += 26;
     });
     currentY += 10;
 
-    // Metadata Section
+    // METADATA
     if (metadata.length > 0) {
       doc.setDrawColor(230, 230, 230);
       doc.setLineWidth(0.5);
-      doc.line(margin, currentY, margin + pageWidth, currentY);
-      currentY += 15;
+      doc.line(MARGIN, currentY, MARGIN + PAGE_WIDTH, currentY);
+      currentY += 18;
       
       doc.setTextColor(100, 100, 100);
       doc.setFontSize(9);
       doc.setFont("helvetica", "normal");
       
       metadata.forEach(m => {
-        const mLines = doc.splitTextToSize(toPlainText(m), pageWidth);
+        const mLines = doc.splitTextToSize(toPlainText(m), PAGE_WIDTH);
         mLines.forEach((l: string) => {
-          if (checkYOverflow(currentY, 12)) { doc.addPage(); currentY = 50; }
-          doc.text(l, margin, currentY);
+          if (currentY > OVERFLOW_LIMIT) { doc.addPage(); currentY = 50; }
+          doc.text(l, MARGIN, currentY);
           currentY += 13;
         });
       });
       currentY += 15;
     }
 
-    // Process Content Sections
+    // CONTENT SECTIONS
     sections.forEach(s => {
       if (s.label) {
-        if (checkYOverflow(currentY, 22)) { doc.addPage(); currentY = 50; }
+        if (currentY > OVERFLOW_LIMIT - 30) { doc.addPage(); currentY = 50; }
         doc.setTextColor(30, 30, 30);
         doc.setFont("helvetica", "bold");
         doc.setFontSize(11);
-        doc.text(toPlainText(s.label), margin, currentY);
+        doc.text(toPlainText(s.label), MARGIN, currentY);
         currentY += 18;
       }
 
-      doc.setTextColor(70, 70, 70);
+      doc.setTextColor(60, 60, 60);
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
-      const textLines = doc.splitTextToSize(toPlainText(s.text), pageWidth);
+      doc.setFontSize(10.5);
+      const lines = doc.splitTextToSize(toPlainText(s.text), PAGE_WIDTH);
       
-      textLines.forEach((line: string) => {
-        if (checkYOverflow(currentY, 14)) { 
+      lines.forEach((l: string) => {
+        if (currentY > OVERFLOW_LIMIT) { 
           doc.addPage(); 
           currentY = 50;
-          doc.setDrawColor(255, 153, 51); // Saffron brand line on new pages
-          doc.line(margin, 35, margin + pageWidth, 35);
+          doc.setDrawColor(255, 153, 51);
+          doc.line(MARGIN, 35, MARGIN + PAGE_WIDTH, 35);
         }
-        doc.text(line, margin, currentY);
+        doc.text(l, MARGIN, currentY);
         currentY += 14;
       });
-      currentY += 20;
+      currentY += 18;
     });
 
-    // Final Footer
+    // FOOTER
     if (footer) {
-      const footerText = toPlainText(footer);
-      const footerLines = doc.splitTextToSize(footerText, pageWidth);
-      if (checkYOverflow(currentY, (footerLines.length * 10) + 20)) { doc.addPage(); currentY = 50; }
-      
+      if (currentY > OVERFLOW_LIMIT - 40) { doc.addPage(); currentY = 50; }
       doc.setDrawColor(240, 240, 240);
-      doc.line(margin, currentY, margin + pageWidth, currentY);
+      doc.line(MARGIN, currentY, MARGIN + PAGE_WIDTH, currentY);
       currentY += 15;
       doc.setTextColor(180, 180, 180);
       doc.setFontSize(8);
-      
-      footerLines.forEach((fl: string) => {
-        doc.text(fl, margin, currentY);
+      const fLines = doc.splitTextToSize(toPlainText(footer), PAGE_WIDTH);
+      fLines.forEach((fl: string) => {
+        doc.text(fl, MARGIN, currentY);
         currentY += 10;
       });
     }
 
-    doc.save(secureFileName);
+    // BULLETPROOF DOWNLOAD METHOD
+    // Instead of doc.save(), we generate a blob and trigger a manual click
+    const pdfBlob = doc.output('blob');
+    const url = URL.createObjectURL(pdfBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = secureFileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
 
   } catch (err) {
-    console.error("PDF Fail:", err);
-    alert("Export failed. Please copy text instead.");
+    console.error("PDF Export Crash:", err);
+    alert("Generation failed. Please copy the text manually.");
   }
 };
