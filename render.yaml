@@ -1,7 +1,5 @@
 # Render Blueprint for LegalAI (Unified Deployment)
 services:
-
-  # 1. RAG BACKEND (FastAPI/Python)
   - type: web
     name: legalai-rag
     env: docker
@@ -12,33 +10,20 @@ services:
     autoDeploy: true
     envVars:
       - key: GROQ_API_KEY
-        sync: false # Set in Render Dashboard
+        sync: false
       - key: PORT
         value: "10000"
 
-  # 2. FRONTEND (Vite/React)
   - type: web
-      runtime: static
     name: legalai-frontend
+    env: static
     buildCommand: npm install && npm run build
     staticPublishPath: ./dist
     autoDeploy: true
     envVars:
       - key: VITE_RAG_API_BASE_URL
-        sync: false # Set this to the public URL of 'legalai-rag' once deployed
+        sync: false
       - key: VITE_GROQ_API_KEY
         sync: false
-      - key: VITE_FIREBASE_API_KEY
-        sync: false
-      - key: VITE_FIREBASE_AUTH_DOMAIN
-        sync: false
-      - key: VITE_FIREBASE_PROJECT_ID
-        sync: false
-      - key: VITE_FIREBASE_STORAGE_BUCKET
-        sync: false
-      - key: VITE_FIREBASE_MESSAGING_SENDER_ID
-        sync: false
-      - key: VITE_FIREBASE_APP_ID
-        sync: false
-      - key: VITE_FIREBASE_MEASUREMENT_ID
-        sync: false
+      - key: VITE_GROQ_MODEL
+        value: llama-3.3-70b-versatile
