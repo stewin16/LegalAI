@@ -1,5 +1,4 @@
-# Use a slim Python image for smaller size
-FROM python:3.9-slim
+FROM python:3.11-slim
 
 # Install system dependencies for Tesseract, Poppler, and OpenCV
 # libgl1 and libglib2.0-0 are needed for many ML libraries
