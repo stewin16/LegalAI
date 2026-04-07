@@ -1,29 +1,28 @@
-# Render Blueprint for LegalAI (Unified Deployment)
 services:
-  - type: web
-    name: legalai-rag
-    env: docker
-    region: singapore
-    plan: free
-    rootDir: rag_service
-    healthCheckPath: /health
-    autoDeploy: true
-    envVars:
-      - key: GROQ_API_KEY
-        sync: false
-      - key: PORT
-        value: "10000"
+- type: web
+  name: legalai-rag
+  env: docker
+  region: singapore
+  plan: free
+  rootDir: rag_service
+  healthCheckPath: /health
+  autoDeploy: true
+  envVars:
+  - key: GROQ_API_KEY
+    sync: false
+  - key: PORT
+    value: "10000"
 
-  - type: web
-    name: legalai-frontend
-    env: static
-    buildCommand: npm install && npm run build
-    staticPublishPath: ./dist
-    autoDeploy: true
-    envVars:
-      - key: VITE_RAG_API_BASE_URL
-        sync: false
-      - key: VITE_GROQ_API_KEY
-        sync: false
-      - key: VITE_GROQ_MODEL
-        value: llama-3.3-70b-versatile
+- type: web
+  name: legalai-frontend
+  env: static
+  buildCommand: npm install && npm run build
+  staticPublishPath: ./dist
+  autoDeploy: true
+  envVars:
+  - key: VITE_RAG_API_BASE_URL
+    sync: false
+  - key: VITE_GROQ_API_KEY
+    sync: false
+  - key: VITE_GROQ_MODEL
+    value: llama-3.3-70b-versatile
