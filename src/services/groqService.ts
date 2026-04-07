@@ -5,6 +5,7 @@ const GROQ_MODEL = import.meta.env.VITE_GROQ_MODEL || "llama-3.3-70b-versatile";
 const API_URL = "https://api.groq.com/openai/v1/chat/completions";
 const RAG_API_BASE = (import.meta.env.VITE_RAG_API_BASE_URL || "/rag").replace(/\/$/, "");
 const REQUEST_TIMEOUT_MS = 45000;
+const RAG_TIMEOUT_MS = 120000; // 120s: Render free tier can take 50s+ to cold start
 const MAX_RETRIES = 2;
 const RETRYABLE_STATUS = new Set([408, 425, 429, 500, 502, 503, 504]);
 
@@ -148,10 +149,12 @@ export const chatStream = async (
   }
 
   const controller = new AbortController();
-  const timeoutId = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const timeoutId = window.setTimeout(() => controller.abort(), RAG_TIMEOUT_MS);
 
   try {
     const lastUserMessage = messages[messages.length - 1].content;
+    // Inform user backend may be waking up (Render free tier cold start)
+    const loadingToastId = toast.loading("Connecting to Legal AI engine... (first request may take up to 60s)", { duration: RAG_TIMEOUT_MS });
     const response = await fetch(`${RAG_API_BASE}/query`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -166,12 +169,15 @@ export const chatStream = async (
     });
 
     if (!response.ok) {
+      toast.dismiss(loadingToastId);
       throw new Error("RAG API failed to respond");
     }
 
     const data = (await response.json()) as { answer?: string; citations?: Citation[] };
     const answer = data.answer || "No response generated.";
     const citations = Array.isArray(data.citations) ? data.citations : [];
+
+    toast.dismiss(loadingToastId);
 
     // Simulate Streaming for the UI
     const words = answer.split(" ");
@@ -184,9 +190,13 @@ export const chatStream = async (
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Unknown error";
     console.error("RAG Chat Error:", error);
-    toast.error(`Chat Error: ${message}`);
-    // Fallback to error message
-    onUpdate("Error connecting to the Legal RAG backend. Please verify the service is running and reachable.");
+    if (error instanceof DOMException && error.name === "AbortError") {
+      toast.error("Request timed out. The server may still be starting up — please try again in a moment.");
+      onUpdate("⏳ The Legal AI engine is warming up. Please send your question again in a few seconds.");
+    } else {
+      toast.error(`Chat Error: ${message}`);
+      onUpdate("Error connecting to the Legal RAG backend. Please verify the service is running and reachable.");
+    }
   } finally {
     window.clearTimeout(timeoutId);
   }
